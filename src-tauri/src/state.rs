@@ -1,0 +1,73 @@
+use crate::models::Config;
+use crate::paths;
+use std::collections::HashMap;
+use std::sync::atomic::AtomicBool;
+use std::time::Duration;
+use tokio::sync::{oneshot, Mutex};
+
+pub struct AppState {
+    pub http: reqwest::Client,
+    pub config: Mutex<Config>,
+    /// instance id -> сигнал kill
+    pub running: Mutex<HashMap<String, oneshot::Sender<()>>>,
+    pub ms_cancel: AtomicBool,
+}
+
+impl AppState {
+    pub fn new() -> Self {
+        // Общий таймаут запроса здесь недопустим: client.jar весит ~40 МБ и
+        // на медленном канале качается дольше 30 секунд. Ограничиваем только
+        // установку соединения и паузу между чтениями тела ответа.
+        let http = reqwest::Client::builder()
+            .user_agent("ArbuzLauncher/1.0")
+            .connect_timeout(Duration::from_secs(30))
+            .read_timeout(Duration::from_secs(60))
+            .pool_max_idle_per_host(16)
+            .build()
+            .unwrap_or_else(|_| reqwest::Client::new());
+
+        Self {
+            http,
+            config: Mutex::new(load_config()),
+            running: Mutex::new(HashMap::new()),
+            ms_cancel: AtomicBool::new(false),
+        }
+    }
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Синхронная загрузка config.json (вызывается до старта рантайма).
+fn load_config() -> Config {
+    migrate_legacy_dir();
+    // Нет config.json — это первый запуск, показываем визард знакомства.
+    // У существующего файла поля `onboarded` может не быть: тогда значение
+    // берётся из Config::default() (true), чтобы визард не всплывал заново.
+    let fresh = paths::first_run();
+    let mut cfg: Config = std::fs::read_to_string(paths::config_file())
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default();
+    if fresh {
+        cfg.onboarded = false;
+    }
+    cfg.sanitize();
+    cfg
+}
+
+/// Переименование лаунчера: один раз переносим старую папку данных
+/// (`%APPDATA%\Quarry`), чтобы не потерять профили и настройки.
+fn migrate_legacy_dir() {
+    let Some(base) = dirs::data_dir() else {
+        return;
+    };
+    let old = base.join("Quarry");
+    let new = paths::root();
+    if !new.exists() && old.is_dir() {
+        let _ = std::fs::rename(&old, &new);
+    }
+}

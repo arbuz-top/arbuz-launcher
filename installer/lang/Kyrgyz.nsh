@@ -1,0 +1,129 @@
+﻿;Language: Kyrgyz
+;By Joost Verburg
+
+!insertmacro LANGFILE "Kyrgyz" "Kyrgyz" "Kyrgyz" "Kyrgyz"
+
+!ifdef MUI_WELCOMEPAGE
+  ${LangFileString} MUI_TEXT_WELCOME_INFO_TITLE "$(^NameDA) Орнотууга кош келиңиз"
+  ${LangFileString} MUI_TEXT_WELCOME_INFO_TEXT "Орнотуу сизге орнотуу боюнча жетекчилик кылат $(^NameDA).$\r$\n$\r$\nIt Орнотууну баштоодон мурун бардык башка колдонмолорду жабуу сунушталат. Бул компьютериңизди өчүрүп күйгүзбөстөн тиешелүү система файлдарын жаңыртууга мүмкүндүк берет.$\r$\n$\r$\n$_CLICK"
+!endif
+
+!ifdef MUI_UNWELCOMEPAGE
+  ${LangFileString} MUI_UNTEXT_WELCOME_INFO_TITLE "$(^NameDA) Орнотууга кош келиңиз"
+  ${LangFileString} MUI_UNTEXT_WELCOME_INFO_TEXT "Орнотуу $(^NameDA).$\r$\n$\r$\nBefore орнотууну алып салууга багыт берет, $(^NameDA) иштебей жатканын текшериңиз.$\r$\n$\r$\n$_CLICK"
+!endif
+
+!ifdef MUI_LICENSEPAGE
+  ${LangFileString} MUI_TEXT_LICENSE_TITLE "Лицензиялык келишим"
+  ${LangFileString} MUI_TEXT_LICENSE_SUBTITLE "$(^NameDA). орнотуудан мурун лицензиянын шарттарын карап чыгыңыз"
+  ${LangFileString} MUI_INNERTEXT_LICENSE_BOTTOM "Эгер сиз келишимдин шарттарын кабыл алсаңыз, улантуу үчүн Мен макулмун дегенди басыңыз. $(^NameDA). орнотуу үчүн келишимди кабыл алышыңыз керек"
+  ${LangFileString} MUI_INNERTEXT_LICENSE_BOTTOM_CHECKBOX "Эгер сиз келишимдин шарттарын кабыл алсаңыз, төмөнкү белгини чыкылдатыңыз. $(^NameDA). $_CLICK орнотуу келишимин кабыл алышыңыз керек"
+  ${LangFileString} MUI_INNERTEXT_LICENSE_BOTTOM_RADIOBUTTONS "Эгер сиз келишимдин шарттарын кабыл алсаңыз, төмөндөгү биринчи параметрди тандаңыз. $(^NameDA). $_CLICK орнотуу үчүн келишимди кабыл алышыңыз керек"
+!endif
+
+!ifdef MUI_UNLICENSEPAGE
+  ${LangFileString} MUI_UNTEXT_LICENSE_TITLE "Лицензиялык келишим"
+  ${LangFileString} MUI_UNTEXT_LICENSE_SUBTITLE "$(^NameDA). орнотуудан мурун лицензия шарттарын карап чыгыңыз"
+  ${LangFileString} MUI_UNINNERTEXT_LICENSE_BOTTOM "Эгер сиз келишимдин шарттарын кабыл алсаңыз, улантуу үчүн Мен макулмун дегенди басыңыз. $(^NameDA). орнотуудан чыгаруу келишимин кабыл алышыңыз керек"
+  ${LangFileString} MUI_UNINNERTEXT_LICENSE_BOTTOM_CHECKBOX "Эгер сиз келишимдин шарттарын кабыл алсаңыз, төмөнкү белгини чыкылдатыңыз. $(^NameDA). $_CLICK орнотуудан чыгаруу келишимин кабыл алышыңыз керек"
+  ${LangFileString} MUI_UNINNERTEXT_LICENSE_BOTTOM_RADIOBUTTONS "Эгер сиз келишимдин шарттарын кабыл алсаңыз, төмөндөгү биринчи параметрди тандаңыз. $(^NameDA). $_CLICK орнотуудан чыгаруу келишимин кабыл алышыңыз керек"
+!endif
+
+!ifdef MUI_LICENSEPAGE | MUI_UNLICENSEPAGE
+  ${LangFileString} MUI_INNERTEXT_LICENSE_TOP "Келишимдин калган бөлүгүн көрүү үчүн Page Down баскычын басыңыз."
+!endif
+
+!ifdef MUI_COMPONENTSPAGE
+  ${LangFileString} MUI_TEXT_COMPONENTS_TITLE "Компоненттерди тандаңыз"
+  ${LangFileString} MUI_TEXT_COMPONENTS_SUBTITLE "$(^NameDA)тин кайсы функцияларын орноткуңуз келгенин тандаңыз."
+!endif
+
+!ifdef MUI_UNCOMPONENTSPAGE
+  ${LangFileString} MUI_UNTEXT_COMPONENTS_TITLE "Компоненттерди тандаңыз"
+  ${LangFileString} MUI_UNTEXT_COMPONENTS_SUBTITLE "$(^NameDA)тин кайсы функцияларын алып салгыңыз келгенин тандаңыз."
+!endif
+
+!ifdef MUI_COMPONENTSPAGE | MUI_UNCOMPONENTSPAGE
+  ${LangFileString} MUI_INNERTEXT_COMPONENTS_DESCRIPTION_TITLE "Description"
+  !ifndef NSIS_CONFIG_COMPONENTPAGE_ALTERNATIVE
+    ${LangFileString} MUI_INNERTEXT_COMPONENTS_DESCRIPTION_INFO "Компоненттин сүрөттөлүшүн көрүү үчүн чычканыңызды анын үстүнө жайгаштырыңыз."
+  !else
+    ${LangFileString} MUI_INNERTEXT_COMPONENTS_DESCRIPTION_INFO "Компоненттин сүрөттөлүшүн көрүү үчүн чычканыңызды анын үстүнө жайгаштырыңыз."
+  !endif
+!endif
+
+!ifdef MUI_DIRECTORYPAGE
+  ${LangFileString} MUI_TEXT_DIRECTORY_TITLE "Орнотуу ордун тандаңыз"
+  ${LangFileString} MUI_TEXT_DIRECTORY_SUBTITLE "$(^NameDA). орнотула турган папканы тандаңыз"
+!endif
+
+!ifdef MUI_UNDIRECTORYPAGE
+  ${LangFileString} MUI_UNTEXT_DIRECTORY_TITLE "Жайгашкан жерди орнотууну тандаңыз"
+  ${LangFileString} MUI_UNTEXT_DIRECTORY_SUBTITLE "Орнотуу үчүн папканы тандаңыз $(^NameDA)."
+!endif
+
+!ifdef MUI_INSTFILESPAGE
+  ${LangFileString} MUI_TEXT_INSTALLING_TITLE "Орнотулууда"
+  ${LangFileString} MUI_TEXT_INSTALLING_SUBTITLE "Сураныч, $(^NameDA) орнотулуп жатканда күтө туруңуз."
+  ${LangFileString} MUI_TEXT_FINISH_TITLE "Орнотуу аяктады"
+  ${LangFileString} MUI_TEXT_FINISH_SUBTITLE "Орнотуу ийгиликтүү аяктады."
+  ${LangFileString} MUI_TEXT_ABORT_TITLE "Орнотуу токтотулду"
+  ${LangFileString} MUI_TEXT_ABORT_SUBTITLE "Орнотуу ийгиликтүү аяктаган жок."
+!endif
+
+!ifdef MUI_UNINSTFILESPAGE
+  ${LangFileString} MUI_UNTEXT_UNINSTALLING_TITLE "Орнотуудан чыгарылууда"
+  ${LangFileString} MUI_UNTEXT_UNINSTALLING_SUBTITLE "Сураныч, $(^NameDA) чыгарылып жатканча күтө туруңуз."
+  ${LangFileString} MUI_UNTEXT_FINISH_TITLE "Орнотуу аяктады"
+  ${LangFileString} MUI_UNTEXT_FINISH_SUBTITLE "Орнотуу ийгиликтүү аяктады."
+  ${LangFileString} MUI_UNTEXT_ABORT_TITLE "Орнотуу токтотулду"
+  ${LangFileString} MUI_UNTEXT_ABORT_SUBTITLE "Орнотуу ийгиликтүү аяктаган жок."
+!endif
+
+!ifdef MUI_FINISHPAGE
+  ${LangFileString} MUI_TEXT_FINISH_INFO_TITLE "$(^NameDA) Орнотуу аякталууда"
+  ${LangFileString} MUI_TEXT_FINISH_INFO_TEXT "$(^NameDA) компьютериңизге орнотулду.$\r$\n$\r$\nClick Орнотууну жабууну бүтүрүңүз."
+  ${LangFileString} MUI_TEXT_FINISH_INFO_REBOOT "$(^NameDA). орнотууну аяктоо үчүн компьютериңиз өчүрүлүп күйгүзүлүшү керек. Азыр өчүрүп күйгүзүүнү каалайсызбы?"
+!endif
+
+!ifdef MUI_UNFINISHPAGE
+  ${LangFileString} MUI_UNTEXT_FINISH_INFO_TITLE "Аяктоо $(^NameDA) Орнотуудан чыгаруу"
+  ${LangFileString} MUI_UNTEXT_FINISH_INFO_TEXT "$(^NameDA) компьютериңизден алынып салынды.$\r$\n$\r$\nClick Орнотууну жабуу үчүн бүтүрүңүз."
+  ${LangFileString} MUI_UNTEXT_FINISH_INFO_REBOOT "$(^NameDA). орнотууну аяктоо үчүн компьютериңиз кайра күйгүзүлүшү керек. Азыр өчүрүп күйгүзүүнү каалайсызбы?"
+!endif
+
+!ifdef MUI_FINISHPAGE | MUI_UNFINISHPAGE
+  ${LangFileString} MUI_TEXT_FINISH_REBOOTNOW "Азыр өчүрүп күйгүзүңүз"
+  ${LangFileString} MUI_TEXT_FINISH_REBOOTLATER "Мен кийинчерээк кол менен өчүрүп күйгүм келет"
+  ${LangFileString} MUI_TEXT_FINISH_RUN "&Чуркоо $(^NameDA)"
+  ${LangFileString} MUI_TEXT_FINISH_SHOWREADME "&Окуума көрсөтүү"
+  ${LangFileString} MUI_BUTTONTEXT_FINISH "&Бүтүрүү"  
+!endif
+
+!ifdef MUI_STARTMENUPAGE
+  ${LangFileString} MUI_TEXT_STARTMENU_TITLE "Баштоо менюсунун папкасын тандаңыз"
+  ${LangFileString} MUI_TEXT_STARTMENU_SUBTITLE "$(^NameDA) жарлыктар үчүн Start Меню папкасын тандаңыз."
+  ${LangFileString} MUI_INNERTEXT_STARTMENU_TOP "Программанын жарлыктарын түзгүңүз келген Start Меню папкасын тандаңыз. Ошондой эле жаңы папка түзүү үчүн ат киргизсеңиз болот."
+  ${LangFileString} MUI_INNERTEXT_STARTMENU_CHECKBOX "Жарлыктарды түзбөңүз"
+!endif
+
+!ifdef MUI_UNCONFIRMPAGE
+  ${LangFileString} MUI_UNTEXT_CONFIRM_TITLE "$(^NameDA) орнотуудан чыгаруу"
+  ${LangFileString} MUI_UNTEXT_CONFIRM_SUBTITLE "Компьютериңизден $(^NameDA) алып салыңыз."
+!endif
+
+!ifdef MUI_ABORTWARNING
+  ${LangFileString} MUI_TEXT_ABORTWARNING "$(^Name) Орнотуудан чын эле чыккыңыз келеби?"
+!endif
+
+!ifdef MUI_UNABORTWARNING
+  ${LangFileString} MUI_UNTEXT_ABORTWARNING "Чын эле $(^Name) Орнотуудан чыккыңыз келеби?"
+!endif
+
+!ifdef MULTIUSER_INSTALLMODEPAGE
+  ${LangFileString} MULTIUSER_TEXT_INSTALLMODE_TITLE "Колдонуучуларды тандаңыз"
+  ${LangFileString} MULTIUSER_TEXT_INSTALLMODE_SUBTITLE "Кайсы колдонуучулар үчүн орноткуңуз келгенин тандаңыз $(^NameDA)."
+  ${LangFileString} MULTIUSER_INNERTEXT_INSTALLMODE_TOP "$(^NameDA) орнотууну өзүңүз үчүн же бул компьютердин бардык колдонуучулары үчүн тандаңыз. $(^ClickNext)"
+  ${LangFileString} MULTIUSER_INNERTEXT_INSTALLMODE_ALLUSERS "Бул компьютерди колдонгондор үчүн орнотуу"
+  ${LangFileString} MULTIUSER_INNERTEXT_INSTALLMODE_CURRENTUSER "Мен үчүн гана орнотуу"
+!endif

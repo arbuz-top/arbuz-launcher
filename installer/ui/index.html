@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Установка Quarry</title>
+    <link rel="stylesheet" href="/fonts.css" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div id="win" data-mode="dark">
+      <div class="grid" aria-hidden="true"></div>
+
+      <header id="tb">
+        <div class="tb-brand">
+          <span class="tb-dot"></span>
+          <b>Quarry Setup</b>
+          <span class="tb-sep"></span>
+          <span id="tb-mode">Установка</span>
+        </div>
+        <div class="wc">
+          <button id="min" type="button" title="Свернуть" aria-label="Свернуть">
+            <svg viewBox="0 0 10 10"><path d="M0 5h10" /></svg>
+          </button>
+          <button id="close" type="button" title="Закрыть" aria-label="Закрыть">
+            <svg viewBox="0 0 10 10"><path d="M0 0l10 10M10 0 0 10" /></svg>
+          </button>
+        </div>
+      </header>
+
+      <main>
+        <aside id="side">
+          <div class="brand">
+            <div class="logo"><img src="/icon.png" alt="Quarry" /></div>
+            <div class="brand-t">
+              <span class="eyebrow" id="brand-eyebrow">Установщик</span>
+              <h1>Quarry</h1>
+              <p id="brand-sub">Лаунчер Minecraft Java Edition</p>
+            </div>
+          </div>
+
+          <div class="ver-pill"><span id="ver">Версия 1.0.0</span></div>
+
+          <ol id="steps">
+            <li data-step="1">
+              <i>
+                <span>1</span>
+                <svg class="ck" viewBox="0 0 12 12"><path d="M2 6.2 4.8 9 10 3.4" /></svg>
+              </i>
+              <div><b id="st1">Параметры</b><small id="st1s">Папка и ярлыки</small></div>
+            </li>
+            <li data-step="2">
+              <i>
+                <span>2</span>
+                <svg class="ck" viewBox="0 0 12 12"><path d="M2 6.2 4.8 9 10 3.4" /></svg>
+              </i>
+              <div><b id="st2">Установка</b><small id="st2s">Копирование файлов</small></div>
+            </li>
+            <li data-step="3">
+              <i>
+                <span>3</span>
+                <svg class="ck" viewBox="0 0 12 12"><path d="M2 6.2 4.8 9 10 3.4" /></svg>
+              </i>
+              <div><b id="st3">Готово</b><small id="st3s">Запуск лаунчера</small></div>
+            </li>
+          </ol>
+        </aside>
+
+        <section id="main">
+          <div class="step" data-view="opts">
+            <div class="eyebrow">Установка</div>
+            <h2>Всё готово к установке</h2>
+            <p class="lead">Quarry установится в папку пользователя — права администратора не нужны.</p>
+
+            <div class="card">
+              <div class="card-head">
+                <span class="lbl">Папка установки</span>
+                <span id="badge" class="badge" hidden></span>
+              </div>
+              <div class="path">
+                <code id="path">…</code>
+                <button id="browse" class="btn sm ghost" type="button">Изменить</button>
+              </div>
+              <div class="hint" id="hint">…</div>
+            </div>
+
+            <div class="card opts">
+              <label class="opt">
+                <span><b>Ярлык на рабочем столе</b><small>Быстрый запуск с рабочего стола</small></span>
+                <input id="desktop" type="checkbox" checked />
+                <i class="sw"></i>
+              </label>
+              <label class="opt">
+                <span><b>Ярлык в меню «Пуск»</b><small>Quarry появится в списке программ</small></span>
+                <input id="start" type="checkbox" checked />
+                <i class="sw"></i>
+              </label>
+              <label class="opt">
+                <span><b>Запустить после установки</b><small>Открыть лаунчер сразу после копирования</small></span>
+                <input id="run" type="checkbox" checked />
+                <i class="sw"></i>
+              </label>
+            </div>
+
+            <div class="actions">
+              <button id="remove" class="btn ghost danger-text" type="button" hidden>Удалить</button>
+              <span class="grow"></span>
+              <button id="install" class="btn pr lg" type="button">
+                <span id="install-label">Установить</span>
+                <svg class="arrow" viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6" /></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="step" data-view="progress">
+            <div class="eyebrow" id="prog-eyebrow">Установка</div>
+            <h2 id="prog-title">Устанавливаем Quarry</h2>
+            <p class="lead" id="prog-sub">Копируем файлы и готовим ярлыки. Это займёт пару секунд.</p>
+
+            <div class="pct"><b id="pct">0</b><span>%</span></div>
+            <div class="bar"><i id="bar"></i></div>
+            <div class="now"><span class="now-dot"></span><span id="now-text">Подготовка</span></div>
+            <div class="phases" id="phases"></div>
+          </div>
+
+          <div class="step" data-view="done">
+            <div class="done-ring">
+              <svg viewBox="0 0 48 48"><path d="M13 25.5 21 33.5 36 16" /></svg>
+            </div>
+            <div class="eyebrow" id="done-eyebrow">Готово</div>
+            <h2 id="done-title">Quarry установлен</h2>
+            <p class="lead" id="done-sub">Лаунчер готов к работе.</p>
+            <div class="done-path"><code id="done-path">…</code></div>
+
+            <div class="actions">
+              <button id="open-folder" class="btn ghost" type="button">Открыть папку</button>
+              <span class="grow"></span>
+              <button id="launch" class="btn pr" type="button">Запустить Quarry</button>
+              <button id="finish" class="btn ghost" type="button">Закрыть</button>
+            </div>
+          </div>
+
+          <div class="step" data-view="remove">
+            <div class="eyebrow danger-text">Удаление</div>
+            <h2>Удалить Quarry?</h2>
+            <p class="lead">Файлы лаунчера, ярлыки и запись в списке установленных программ будут удалены.</p>
+
+            <div class="card">
+              <span class="lbl">Папка установки</span>
+              <div class="path"><code id="rm-path">…</code></div>
+            </div>
+
+            <label class="card opt" style="margin-top: 12px">
+              <span>
+                <b>Удалить настройки и данные</b>
+                <small>Аккаунты, профили, миры и моды в %APPDATA%\Quarry</small>
+              </span>
+              <input id="rm-data" type="checkbox" />
+              <i class="sw"></i>
+            </label>
+
+            <div class="actions">
+              <button id="rm-cancel" class="btn ghost" type="button">Отмена</button>
+              <span class="grow"></span>
+              <button id="rm-go" class="btn danger" type="button">Удалить</button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <div id="err" class="err" role="alert" hidden>
+        <svg viewBox="0 0 24 24"><path d="M12 8v5M12 16.5v.1" /><circle cx="12" cy="12" r="9" /></svg>
+        <span id="err-text"></span>
+        <button id="err-x" type="button" aria-label="Скрыть">×</button>
+      </div>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,201 @@
+name: Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Тег релиза (например 1.0.1). Пусто — только сборка без релиза.'
+        required: false
+        default: ''
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+
+# Один запуск на ветку: повторный пуш отменяет предыдущую сборку,
+# а не запускает вторую.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: Linux (deb, rpm, AppImage)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Системные зависимости
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl wget file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Зависимости фронтенда
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Разрешить бандлы
+        run: node -e "const fs=require('fs');const p='src-tauri/tauri.conf.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));j.bundle.targets=['deb','rpm','appimage'];fs.writeFileSync(p,JSON.stringify(j,null,2));"
+
+      - name: Сборка пакетов
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+        run: pnpm tauri build --bundles deb,rpm,appimage
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Arbuz-Launcher-linux
+          if-no-files-found: error
+          path: |
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/rpm/*.rpm
+            src-tauri/target/release/bundle/appimage/*.AppImage
+
+  macos:
+    name: macOS (dmg)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Зависимости фронтенда
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Разрешить бандлы
+        run: node -e "const fs=require('fs');const p='src-tauri/tauri.conf.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));j.bundle.targets=['dmg'];fs.writeFileSync(p,JSON.stringify(j,null,2));"
+
+      - name: Сборка (universal)
+        run: pnpm tauri build --target universal-apple-darwin --bundles dmg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Arbuz-Launcher-macos
+          if-no-files-found: error
+          path: src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+
+  windows:
+    name: Windows (установщик)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Зависимости фронтенда
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Установить NSIS
+        run: choco install nsis --yes --no-progress
+
+      - name: Собрать лаунчер
+        run: pnpm tauri build --no-bundle
+
+      - name: Собрать установщик
+        run: pnpm installer
+
+      - name: Портативный exe
+        run: |
+          $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          Copy-Item src-tauri/target/release/arbuz-launcher.exe "Arbuz-Launcher-${version}-portable.exe"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Arbuz-Launcher-windows
+          if-no-files-found: error
+          path: |
+            src-tauri/target/release/bundle/arbuz/*.exe
+            Arbuz-Launcher-*-portable.exe
+
+  release:
+    name: Релиз
+    needs: [windows, linux, macos]
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.event.inputs.release != '')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Список файлов
+        run: find dist -type f | sort
+
+      - name: Тег
+        id: ver
+        env:
+          RELEASE_INPUT: ${{ github.event.inputs.release }}
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            tag="${GITHUB_REF_NAME}"
+          else
+            tag="$RELEASE_INPUT"
+          fi
+          case "$tag" in v*) ;; *) tag="v$tag" ;; esac
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: Arbuz Launcher ${{ steps.ver.outputs.tag }}
+          generate_release_notes: true
+          files: dist/**/*
+          fail_on_unmatched_files: true

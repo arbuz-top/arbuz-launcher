@@ -1,0 +1,20 @@
+# Единые переводы строк: LF в репозитории (важно для скриптов и CI на Linux).
+* text=auto eol=lf
+
+# Файлы установщика NSIS должны оставаться с CRLF.
+installer/lang/*.nlf text eol=crlf
+installer/lang/*.nsh text eol=crlf
+
+# Бинарные файлы.
+*.png  binary
+*.ico  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.woff2 binary
+*.otf  binary
+*.ttf  binary
+*.exe  binary
+*.zip  binary
+*.jar  binary

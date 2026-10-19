@@ -1,0 +1,191 @@
+﻿# Header, don't edit
+NLF v6
+# Start editing here
+# Language ID
+1117
+# Font and size - dash (-) means default
+-
+-
+# Codepage - dash (-) means ASCII code page
+-
+# RTL - anything else than RTL means LTR
+-
+# Translation by ..... (any credits should go here)
+# ^Branding
+Nullsoft ᐋᖅᑭᒃᓯᓗᑎᑦ ᖃᕆᑕᐅᔭᕐᒥᒃ %s
+# ^SetupCaption
+$(^Name) ᐋᖅᑭᒃᓱᖅᓯᒪᓂᖓ
+# ^UninstallCaption
+$(^Name) ᐲᔭᕐᓗᒍ
+# ^LicenseSubCaption
+: ᓚᐃᓴᓐᓯᒧᑦ ᐊᖏᖃᑎᒌᒍᑎ
+# ^ComponentsSubCaption
+: ᐋᖅᑭᒃᓯᓂᕐᒧᑦ ᓇᓖᕌᕈᑎᒃᓴᑦ
+# ^DirSubCaption
+: ᐋᖅᑭᒃᓯᓂᕐᒧᑦ ᐸᐃᑉᐹᖁᑎ
+# ^InstallingSubCaption
+: ᐋᖅᑭᒃᓱᐃᓂᖅ
+# ^CompletedSubCaption
+: ᐱᔭᕇᖅᓯᒪᔪᖅ
+# ^UnComponentsSubCaption
+: ᐲᔭᐃᓂᕐᒧᑦ ᓇᓖᕌᕈᑎᑦ
+# ^UnDirSubCaption
+: ᐲᔭᐃᓂᖅ ᐸᐃᑉᐹᖁᑎᒥᒃ
+# ^ConfirmSubCaption
+: ᓇᓗᓇᐃᖅᓯᓂᖅ
+# ^UninstallingSubCaption
+: ᐲᔭᐃᓂᖅ
+# ^UnCompletedSubCaption
+: ᐱᔭᕇᖅᓯᒪᔪᖅ
+# ^BackBtn
+< &ᐅᑎᕐᓗᓂ
+# ^NextBtn
+&ᑭᖑᓪᓕᖅ >
+# ^AgreeBtn
+ᐊᖏᖃᑎᒋᕙᕋ
+# ^AcceptBtn
+ᐊᖏᖅᐳᖓ ᓚᐃᓴᓐᓯᒧᑦ ᐊᖏᕈᑎᐅᑉ ᐃᓗᓕᖏᓐᓂᒃ
+# ^DontAcceptBtn
+ᐊᖏᙱᓚᖓ ᓚᐃᓴᓐᓯᒧᑦ ᐊᖏᕈᑎᐅᑉ ᐃᓗᓕᖏᓐᓂᒃ
+# ^InstallBtn
+&ᐋᖅᑭᓱᖅᑕᐅᓂᖓ
+# ^UninstallBtn
+&ᐲᔭᐃᓂᖅ
+# ^CancelBtn
+ᖁᔭᓈᕐᓂᖅ
+# ^CloseBtn
+&ᖃᓂᑦᑐᖅ
+# ^BrowseBtn
+ᕿᒥᕐᕈᐊᒐᖅ...
+# ^ShowDetailsBtn
+ᑕᑯᒃᓴᐅᑎᑦᑎᓂᖅ ᐊᒻᒪ ᓇᓗᓇᐃᔭᖅᓯᒪᔪᑦ
+# ^ClickNext
+ᓇᕿᓪᓗᒍ ᑭᖑᓪᓕᖅ ᑲᔪᓯᓂᐊᕐᓗᑎᑦ.
+# ^ClickInstall
+ᓇᕿᓪᓗᒍ ᐋᖅᑭᒃᓯᓂᖅ ᐱᒋᐊᖅᑎᑦᑎᓂᐊᕐᓗᑎᑦ ᐋᖅᑭᒃᓯᓂᕐᒥᒃ.
+# ^ClickUninstall
+ᓇᕿᓪᓗᒍ ᐲᔭᐃᓂᖅ ᐱᒋᐊᖅᑎᑦᑎᓂᐊᕐᓗᑎᑦ ᐲᔭᐃᓂᕐᒥᒃ.
+# ^Name
+ᐊᑎᖓ
+# ^Completed
+ᐱᔭᕇᖅᑐᖅ
+# ^LicenseText
+ᐊᑏ ᕿᒥᕐᕈᐊᒃᑲᓐᓂᓚᐅᕆᑦ ᓚᐃᓴᓐᓯᒧᑦ ᐊᖏᖃᑎᒌᒍᑎᒥᒃ ᐋᖅᑭᒃᓯᓚᐅᙱᓐᓂᕐᓂ $(^NameDA)-ᒥᒃ. ᐊᖏᕈᕕᒋᑦ ᑕᒪᕐᒥᒃ ᐊᖏᕈᑎᐅᑉ ᒪᓕᒃᑕᐅᔭᕆᐊᓖᑦ, ᓇᕿᓪᓗᒍ ᐊᖏᖅᐳᖓ.
+# ^LicenseTextCB
+ᐊᑏ ᕿᒥᕐᕈᐊᒃᑲᓐᓂᓚᐅᕆᑦ ᓚᐃᓴᓐᓯᒧᑦ ᐊᖏᖃᑎᒌᒍᑎᒥᒃ ᐋᖅᑭᒃᓯᓚᐅᙱᓐᓂᕐᓂ $(^NameDA)-ᒥᒃ. ᐊᖏᕈᕕᒋᑦ ᑕᒪᕐᒥᒃ ᐊᖏᕈᑎᐅᑉ ᒪᓕᒃᑕᐅᔭᕆᐊᓖᑦ, ᓇᕿᓪᓗᒍ ᓇᕿᑦᑕᒐᖅ ᐊᑖᓂ. $_ᓇᕿᓪᓗᒍ
+# ^LicenseTextRB
+ᐊᑏ ᕿᒥᕐᕈᐊᒃᑲᓐᓂᓚᐅᕆᑦ ᓚᐃᓴᓐᓯᒧᑦ ᐊᖏᖃᑎᒌᒍᑎᒥᒃ ᐋᖅᑭᒃᓯᓚᐅᙱᓐᓂᕐᓂ $(^NameDA)-ᒥᒃ. ᐊᖏᕈᕕᒋᑦ ᑕᒪᕐᒥᒃ ᐊᖏᕈᑎᐅᑉ ᒪᓕᒃᑕᐅᔭᕆᐊᓖᑦ, ᓂᕈᐊᕐᓗᒍ ᓯᕗᓪᓕᖅᐹᖅ ᓇᓖᕌᕈᑎ ᐊᑖᓂ. $_ᓇᕿᓪᓗᒍ
+# ^UnLicenseText
+ᐊᑏ ᕿᒥᕐᕈᐊᓚᐅᕈᒃ ᓚᐃᓴᓐᓯᒧᑦ ᐊᖏᖃᑎᒌᒍᑎ ᐲᔭᐃᓚᐅᙱᓐᓂᕐᓂ $(^NameDA)-ᒥᒃ. ᐊᖏᕈᕕᒋᑦ ᑕᒪᕐᒥᒃ ᐊᖏᕈᑎᐅᑉ ᒪᓕᒃᑕᐅᔭᕆᐊᓖᑦ, ᓇᕿᓪᓗᒍ ᐊᖏᖅᐳᖓ.
+# ^UnLicenseTextCB
+ᐊᑏ ᕿᒥᕐᕈᐊᓚᐅᕈᒃ ᓚᐃᓴᓐᓯᒧᑦ ᐊᖏᖃᑎᒌᒍᑎ ᐲᔭᐃᓚᐅᙱᓐᓂᕐᓂ $(^NameDA)-ᒥᒃ. ᐊᖏᕈᕕᒋᑦ ᑕᒪᕐᒥᒃ ᐊᖏᕈᑎᐅᑉ ᒪᓕᒃᑕᐅᔭᕆᐊᓖᑦ, ᓇᕿᓪᓗᒍ ᓇᕿᑦᑕᒐᖅ ᐊᑖᓂ. $_ᓇᕿᓪᓗᒍ
+# ^UnLicenseTextRB
+ᐊᑏ ᕿᒥᕐᕈᐊᒃᑲᓐᓂᓚᐅᕈᒃ ᓚᐃᓴᓐᓯᒧᑦ ᐊᖏᖃᑎᒌᒍᑎ ᐲᔭᐃᓚᐅᙱᓐᓂᕐᓂ $(^NameDA)-ᒥᒃ. ᐊᖏᕈᕕᒋᑦ ᑕᒪᕐᒥᒃ ᐊᖏᕈᑎᐅᑉ ᒪᓕᒃᑕᐅᔭᕆᐊᓖᑦ, ᓂᕈᐊᕐᓗᒍ ᓯᕗᓪᓕᖅᐹᖅ ᓇᓖᕌᕈᑎ ᐊᑖᓂ. $_ᓇᕿᓪᓗᒍ
+# ^Custom
+ᐃᓕᖅᑯᓯᖅ
+# ^ComponentsText
+ᖃᐅᔨᒋᐊᕐᓗᒋᑦ ᐃᓚᒃᓴᖏᑦ ᐋᖅᑭᒃᓯᔪᒪᔭᑎᑦ ᐊᒻᒪᓗ ᐲᔭᕐᓗᒋᑦ ᐃᓚᒃᓴᖏᑦ ᐋᖅᑭᒃᓯᔪᒪᙱᑕᑎᑦ. $_ᓇᕿᓪᓗᒍ
+# ^ComponentsSubText1
+ᓂᕈᐊᕐᓗᒍ ᖃᓄᐃᑦᑑᓂᖓ ᐋᖅᑭᒃᓯᕕᐅᑉ:
+# ^ComponentsSubText2_NoInstTypes
+ᓂᕈᐊᕐᓗᒋᑦ ᐃᓚᒃᓴᖏᑦ ᐋᖅᑭᒃᑕᐅᓂᐊᖅᑐᑦ:
+# ^ComponentsSubText2
+ᐅᕝᕙᓘᓐᓃᑦ, ᓂᕈᐊᕐᓗᒍ ᓇᓕᕌᕈᑎᒃᓴᐃᑦ ᐃᓚᒃᓴᖏᑦ ᐋᖅᑭᒃᓯᔪᒪᔭᑎᑦ:
+# ^UnComponentsText
+ᖃᐅᔨᒋᐊᕐᓗᒋᑦ ᐃᓚᒃᓴᖏᑦ ᐲᔭᕈᒪᔭᑎᑦ ᐊᒻᒪᓗ ᐲᔭᕐᓗᒋᑦ ᐃᓚᒃᓴᖏᑦ ᐲᔭᕈᒪᙱᑕᑎᑦ. $_ᓇᕿᓪᓗᒍ
+# ^UnComponentsSubText1
+ᓂᕈᐊᕐᓗᒍ ᖃᓄᐃᑦᑑᓂᖓ ᐲᔭᐃᔾᔪᑎᐅᑉ:
+# ^UnComponentsSubText2_NoInstTypes
+ᓂᕈᐊᕐᓗᒋᑦ ᐃᓚᒃᓴᖏᑦ ᐲᔭᖅᑕᐅᓂᐊᖅᑐᑦ:
+# ^UnComponentsSubText2
+ᐅᕝᕙᓘᓐᓃᑦ, ᓂᕈᐊᕐᓗᒍ ᓇᓕᕌᕈᑎᒃᓴᐃᑦ ᐲᔭᕈᒪᔭᑎᑦ:
+# ^DirText
+ᐋᖅᑭᒃᓱᐃᓂᖅ ᐋᖅᑭᒃᓯᓂᐊᖅᑐᖅ $(^NameDA) ᐅᑯᓇᓂ ᐸᐃᑉᐹᖁᑎᓂ. ᐋᖅᑭᒃᓯᔪᒪᒍᕕᑦ ᐊᓯᐊᓄᑦ ᐸᐃᑉᐹᖁᑎᒧᑦ, ᓇᕿᓪᓗᒍ ᕿᓂᕐᓗᑎᑦ ᓂᕈᐊᕐᓗᑎᓪᓗ ᐊᓯᐊᓂᒃ ᐸᐃᑉᐹᖁᑎᒥᒃ. $_ᓇᕿᓪᓗᒍ
+# ^DirSubText
+ᑐᕌᕐᕕᒃᓴᖓ ᐸᐃᑉᐹᖁᑎ
+# ^DirBrowseText
+ᓂᕈᐊᕐᓗᒍ ᐸᐃᑉᐹᖁᑎ ᐋᖅᑭᒃᓯᕕᒋᓂᐊᖅᑕᐃᑦ $(^NameDA) ᐃᓗᐊᓂ:
+# ^UnDirText
+ᐋᖅᑭᒃᓱᐃᓂᖅ ᐲᖅᓯᓂᐊᖅᑐᖅ $(^NameDA)-ᒥᒃ ᐅᑯᓇᙵᑦ ᐸᐃᑉᐹᖁᑎᓂᒃ. ᐲᔭᐃᔪᒪᒍᕕᑦ ᐊᓯᐊᓂᒃ ᐸᐃᑉᐹᖁᑎᒥᒃ, ᓇᕿᓪᓗᒍ ᕿᓂᕐᓗᑎᑦ ᓂᕈᐊᕐᓗᑎᓪᓗ ᐊᓯᐊᓂᒃ ᐸᐃᑉᐹᖁᑎᒥᒃ. $_ᓇᕿᓪᓗᒍ
+# ^UnDirSubText
+""
+# ^UnDirBrowseText
+ᓂᕈᐊᕐᓗᒍ ᐸᐃᑉᐹᖁᑎ ᐲᔭᖅᑕᐅᓂᐊᖅᑐᖅ $(^NameDA) ᑕᕝᕙᙵᑦ:
+# ^SpaceAvailable
+"ᐃᓂᒃᓴᖅ ᐊᑐᐃᓐᓇᐅᔪᖅ: "
+# ^SpaceRequired
+"ᐃᓂᒃᓴᖃᕆᐊᖃᖅᑐᖅ: "
+# ^UninstallingText
+$(^NameDA) ᐲᖅᑕᐅᓂᐊᖅᑐᖅ ᐅᑯᓇᙵᑦ ᐸᐃᑉᐹᖁᑎᓂᒃ. $_ᓇᕿᓪᓗᒍ
+# ^UninstallingSubText
+ᐲᔭᐃᓂᖅ ᐅᑯᓇᙵᑦ:
+# ^FileError
+ᑕᒻᒪᖅᓯᒪᔪᖅ ᒪᑐᐃᖅᓯᓂᕐᒥᑦ ᑎᑎᖅᑲᖁᑎᒥᒃ ᑎᑎᕋᕐᕕᒃᓴᒧᑦ: \r\n\r\n$0\r\n\r\nᓇᕿᓪᓗᒍ ᓄᖅᑲᖅᑎᑦᑎᓂᖅ ᓄᖅᑲᖅᑎᑦᑎᓂᐊᕐᓗᑎᑦ ᐋᖅᑭᒃᓯᓂᕐᒥᒃ,\r\nᐆᒃᑐᒃᑲᓐᓂᕆᑦ ᐆᒃᑐᒃᑲᓐᓂᕐᓗᑎᑦ, ᐅᕝᕙᓘᓐᓃᑦ\r\nIgnore ᖄᖏᐅᑎᓂᐊᕐᓗᑎᑦ ᑖᔅᓱᒥᖓ ᑎᑎᖅᑲᖁᑎᒥᒃ.
+# ^FileError_NoIgnore
+ᑕᒻᒪᖅᓯᒪᔪᖅ ᒪᑐᐃᖅᓯᓂᖅ ᑎᑎᖅᑲᖁᑎᒥᒃ ᑎᑎᕋᕐᕕᒃᓴᒧᑦ: \r\n\r\n$0\r\n\r\nᓇᕿᓪᓗᒍ ᐆᒃᑐᒃᑲᓐᓂᕆᑦ ᐆᒃᑐᑲᓐᓂᕈᒪᒍᕕᑦ, ᐅᕝᕙᓘᓐᓃᑦ\r\nCancel ᓄᖅᑲᖅᑎᑦᑎᓂᐊᕐᓗᑎᑦ ᐋᖅᑭᒃᓯᓂᕐᒥᒃ.
+# ^CantWrite
+"ᑎᑎᕋᕈᓐᓇᙱᓚᖓ: "
+# ^CopyFailed
+ᐊᔾᔨᓕᐅᖅᑕᐅᔪᓐᓇᖏᑦᑐᖅ
+# ^CopyTo
+"ᐊᔾᔨᓕᐅᕐᓗᒍ ᐅᕗᖓ "
+# ^Registering
+"ᐊᑎᓕᐅᖅᑕᐅᓂᖅ: "
+# ^Unregistering
+"ᐊᑎᓕᐅᖅᑕᐅᓯᒪᙱᓐᓂᖅ: "
+# ^SymbolNotFound
+"ᓇᓂᓯᔪᓐᓇᓚᐅᙱᓚᖅ ᓇᓗᓇᐃᒃᑯᑕᕐᒥᒃ: "
+# ^CouldNotLoad
+"ᐊᑐᕈᓐᓇᓚᐅᙱᓚᖅ: "
+# ^CreateFolder
+"ᓴᖅᑭᑦᑎᓗᑎᑦ ᐸᐃᑉᐹᖁᑎᒥᒃ: "
+# ^CreateShortcut
+"ᓴᖅᑭᑦᑎᓗᑎᑦ ᓇᐃᓈᕈᑎᒥᒃ: "
+# ^CreatedUninstaller
+"ᓴᖅᑭᑕᐅᓯᒪᔪᖅ ᐲᔭᐃᔾᔪᑎ: "
+# ^Delete
+"ᐲᖅᓯᓗᑎᑦ ᑎᑎᖅᑲᖁᑎᒥᒃ: "
+# ^DeleteOnReboot
+"ᐲᕐᓗᒍ ᐱᒋᐊᒃᑲᓐᓂᖅᑎᓪᓗᒍ: "
+# ^ErrorCreatingShortcut
+"ᑕᒻᒪᖅᓯᒪᔪᖅ ᓴᖅᑭᑦᑎᓂᕐᒥᑦ ᓇᐃᓈᕈᑎᒥᒃ: "
+# ^ErrorCreating
+"ᑕᒻᒪᖅᓯᒪᔪᖅ ᓴᖅᑭᑦᑎᓂᖅ: "
+# ^ErrorDecompressing
+ᑕᒻᒪᖅᓯᒪᔪᖅ ᓇᕿᑦᑕᐃᓂᕐᒥᒃ ᑐᑭᓯᒋᐊᕈᑎᒃᓴᓂᒃ! ᓱᕋᒃᓯᒪᔪᖅ ᐋᖅᑭᒃᓱᐃᔨ?
+# ^ErrorRegistering
+ᑕᒻᒪᖅᓯᒪᔪᖅ ᐊᑎᓕᐅᖅᑕᐅᓂᖓᓄᑦ DLL
+# ^ExecShell
+"ᐊᐅᓚᑦᑎᔨ ᓯᐅᓪ: "
+# ^Exec
+"ᐊᑐᓕᖅᑎᑕᐅᓂᖓ: "
+# ^Extract
+"ᐲᖅᓯᓂᖅ: "
+# ^ErrorWriting
+"ᐃᓚᖓ: ᑕᒻᒪᖅᓯᒪᔪᖅ ᑎᑎᕋᕐᓂᖅ ᐸᐃᑉᐹᖁᑎᒧᑦ "
+# ^InvalidOpcode
+ᐋᖅᑭᒃᓯᔨ ᓱᕋᒃᓯᒪᔪᖅ: ᐊᑐᙱᑦᑐᖅ opcode
+# ^NoOLE
+"ᐊᑐᙱᓚᖅ OLE ᑖᒃᑯᓄᖓ: "
+# ^OutputFolder
+"ᓴᖅᑭᑕᐅᔪᖅ ᐸᐃᑉᐹᖁᑎ: "
+# ^RemoveFolder
+"ᐲᖅᓯᓗᑎᑦ ᐸᐃᑉᐹᖁᑎᒥᒃ: "
+# ^RenameOnReboot
+"ᐊᑎᖓ ᐊᓯᔾᔨᕐᓗᒍ ᐱᒋᐊᒃᑲᓐᓂᖅᑎᓪᓗᒍ: "
+# ^Rename
+"ᐊᑎᖓ ᐊᓯᔾᔨᕐᓗᒍ: "
+# ^Skipped
+"ᐊᓪᓗᖅᑕᐅᔪᖅ: "
+# ^CopyDetails
+ᐊᔾᔨᓕᐅᕐᓗᒋᑦ ᓇᓗᓇᐃᔭᖅᓯᒪᔪᑦ ᓇᕿᑦᑕᒐᕐᒧᑦ
+# ^LogInstall
+ᑎᑎᕋᖅᓯᒪᔪᓂᒃ ᐋᖅᑭᒃᓯᓂᕐᒧᑦ ᐱᕙᓪᓕᐊᔾᔪᓯᖅ
+# ^Byte
+ᐱ
+# ^Kilo
+ᑭ
+# ^Mega
+ᒥ
+# ^Giga
+G

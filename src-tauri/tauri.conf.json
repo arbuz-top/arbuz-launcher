@@ -1,0 +1,39 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Arbuz Launcher",
+  "version": "1.0.0",
+  "identifier": "app.arbuz.launcher",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Arbuz Launcher",
+        "width": 1120,
+        "height": 700,
+        "minWidth": 960,
+        "minHeight": 600,
+        "decorations": false,
+        "center": true,
+        "shadow": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'; img-src 'self' data: asset: http://asset.localhost https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; connect-src ipc: http://ipc.localhost",
+      "devCsp": "default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'; img-src 'self' data: asset: http://asset.localhost https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src ipc: http://ipc.localhost ws://localhost:1420 http://localhost:1420",
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["$DATA/Arbuz Launcher/instances/**", "$DATA/Arbuz Launcher/cache/**", "$DATA/Arbuz Launcher/wallpapers/**"]
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [],
+    "icon": ["icons/icon.ico", "icons/icon.png"]
+  }
+}

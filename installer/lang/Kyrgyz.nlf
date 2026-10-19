@@ -1,0 +1,191 @@
+﻿# Header, don't edit
+NLF v6
+# Start editing here
+# Language ID
+1088
+# Font and size - dash (-) means default
+-
+-
+# Codepage - dash (-) means ASCII code page
+-
+# RTL - anything else than RTL means LTR
+-
+# Translation by ..... (any credits should go here)
+# ^Branding
+Nullsoft орнотуу системасы %s
+# ^SetupCaption
+$(^Name) Орнотуу
+# ^UninstallCaption
+$(^Name) Орнотуу
+# ^LicenseSubCaption
+: Лицензиялык келишим
+# ^ComponentsSubCaption
+: Орнотуу параметрлери
+# ^DirSubCaption
+: Орнотуу папкасы
+# ^InstallingSubCaption
+: Орнотулууда
+# ^CompletedSubCaption
+: Аякталды
+# ^UnComponentsSubCaption
+: Орнотуу параметрлери
+# ^UnDirSubCaption
+: Орнотуу папкасы
+# ^ConfirmSubCaption
+: Ырастоо
+# ^UninstallingSubCaption
+: Орнотуудан чыгарылууда
+# ^UnCompletedSubCaption
+: Аякталды
+# ^BackBtn
+< &Артка
+# ^NextBtn
+&Кийинки >
+# ^AgreeBtn
+Макулмун
+# ^AcceptBtn
+Мен Лицензиялык келишимдин шарттарын кабыл алам
+# ^DontAcceptBtn
+Мен Лицензиялык келишимдин шарттарын кабыл албайм
+# ^InstallBtn
+&Орнотуу
+# ^UninstallBtn
+&Орнотуу
+# ^CancelBtn
+Жокко чыгаруу
+# ^CloseBtn
+&Жабуу
+# ^BrowseBtn
+Б&карап көрүү...
+# ^ShowDetailsBtn
+&Чоо-жайын көрсөтүү
+# ^ClickNext
+Улантуу үчүн Кийинки баскычын басыңыз.
+# ^ClickInstall
+Орнотууну баштоо үчүн орнотууну басыңыз.
+# ^ClickUninstall
+Орнотууну баштоо үчүн Uninstall дегенди басыңыз.
+# ^Name
+аты
+# ^Completed
+Аякталды
+# ^LicenseText
+$(^NameDA) орнотуудан мурун лицензиялык келишимди карап чыгыңыз. Эгер сиз келишимдин бардык шарттарын кабыл алсаңыз, Мен макулмун дегенди басыңыз.
+# ^LicenseTextCB
+$(^NameDA) орнотуудан мурун лицензиялык келишимди карап чыгыңыз. Эгер сиз келишимдин бардык шарттарын кабыл алсаңыз, төмөнкү кутучаны басыңыз. $_CLICK
+# ^LicenseTextRB
+$(^NameDA) орнотуудан мурун лицензиялык келишимди карап чыгыңыз. Эгер сиз келишимдин бардык шарттарын кабыл алсаңыз, төмөнкү биринчи параметрди тандаңыз. $_CLICK
+# ^UnLicenseText
+$(^NameDA) орнотуудан мурун лицензиялык келишимди карап чыгыңыз. Эгер сиз келишимдин бардык шарттарын кабыл алсаңыз, Мен макулмун дегенди басыңыз.
+# ^UnLicenseTextCB
+$(^NameDA) орнотуудан мурун лицензиялык келишимди карап чыгыңыз. Эгер сиз келишимдин бардык шарттарын кабыл алсаңыз, төмөнкү кутучаны басыңыз. $_CLICK
+# ^UnLicenseTextRB
+$(^NameDA) орнотуудан мурун лицензиялык келишимди карап чыгыңыз. Эгер сиз келишимдин бардык шарттарын кабыл алсаңыз, төмөнкү биринчи параметрди тандаңыз. $_CLICK
+# ^Custom
+Ыңгайлаштырылган
+# ^ComponentsText
+Орноткуңуз келген компоненттерди текшерип, орнотууну каалабаган компоненттерди алып салыңыз. $_CLICK
+# ^ComponentsSubText1
+Орнотуу түрүн тандаңыз:
+# ^ComponentsSubText2_NoInstTypes
+Орнотуу үчүн компоненттерди тандаңыз:
+# ^ComponentsSubText2
+Же, орнотууну каалаган кошумча компоненттерди тандаңыз:
+# ^UnComponentsText
+Чыгаргыңыз келген компоненттерди текшериңиз жана алып салгыңыз келбеген компоненттерди алып салыңыз. $_CLICK
+# ^UnComponentsSubText1
+Орнотуунун түрүн тандаңыз:
+# ^UnComponentsSubText2_NoInstTypes
+Орнотуу үчүн компоненттерди тандаңыз:
+# ^UnComponentsSubText2
+Же, сиз алып салгыңыз келген кошумча компоненттерди тандаңыз:
+# ^DirText
+Орнотуу $(^NameDA) төмөнкү папкага орнотулат. Башка папкага орнотуу үчүн, Серептөө баскычын чыкылдатып, башка папканы тандаңыз. $_CLICK
+# ^DirSubText
+Көздөгөн папка
+# ^DirBrowseText
+$(^NameDA) орнотуу үчүн папканы тандаңыз:
+# ^UnDirText
+Орнотуу $(^NameDA)ти төмөнкү папкадан чыгарып салат. Башка папкадан чыгарып салуу үчүн, Серептөө баскычын чыкылдатып, башка папканы тандаңыз. $_CLICK
+# ^UnDirSubText
+""
+# ^UnDirBrowseText
+$(^NameDA) чыгарып салуу үчүн папканы тандаңыз:
+# ^SpaceAvailable
+"Бош орун:"
+# ^SpaceRequired
+"Керектүү орун:"
+# ^UninstallingText
+$(^NameDA) төмөнкү папкадан чыгарылат. $_CLICK
+# ^UninstallingSubText
+Төмөнкүдөн чыгарып салуу:
+# ^FileError
+Жазуу үчүн файлды ачуу катасы: \r\n\r\n$0\r\n\r\nОрнотууну токтотуу үчүн "Жокко чыгаруу" баскычын чыкылдатыңыз,\r\nКайра аракет кылып көрүңүз же\r\nБул файлды өткөрүп жиберүү үчүн этибарга албаңыз.
+# ^FileError_NoIgnore
+Файлды жазуу үчүн ачуу катасы: \r\n\r\n$0\r\n\r\nКайра аракет кылуу үчүн "Кайра аракет кылуу" баскычын чыкылдатыңыз же\r\nОрнотууну токтотуу үчүн "Жокко чыгарууну" басыңыз.
+# ^CantWrite
+"Жаза албайм:"
+# ^CopyFailed
+Көчүрүлгөн жок
+# ^CopyTo
+"Көчүрүү"
+# ^Registering
+"Каттоо:"
+# ^Unregistering
+"Каттоодон чыгаруу:"
+# ^SymbolNotFound
+"Символ табылган жок:"
+# ^CouldNotLoad
+"Жүктөй алган жок:"
+# ^CreateFolder
+"Папканы түзүү:"
+# ^CreateShortcut
+"Жарлык түзүү:"
+# ^CreatedUninstaller
+"Түзүлгөн жок кылуучу:"
+# ^Delete
+"Файлды жок кылуу:"
+# ^DeleteOnReboot
+"Кайра жүктөөдө жок кылуу:"
+# ^ErrorCreatingShortcut
+"Кыска жолду түзүү катасы:"
+# ^ErrorCreating
+"Түзүү катасы:"
+# ^ErrorDecompressing
+Дайындарды ачууда ката кетти! Орноткуч бузулдубу?
+# ^ErrorRegistering
+DLL каттоо катасы
+# ^ExecShell
+"ExecShell:"
+# ^Exec
+"Аткаруу:"
+# ^Extract
+"Үзүндү:"
+# ^ErrorWriting
+"Үзүндү: файлга жазуу катасы"
+# ^InvalidOpcode
+Орноткуч бузулган: операция коду жараксыз
+# ^NoOLE
+"Төмөнкү үчүн OLE жок:"
+# ^OutputFolder
+"Чыгуу папкасы:"
+# ^RemoveFolder
+"Папканы алып салуу:"
+# ^RenameOnReboot
+"Кайра жүктөөдө атын өзгөртүү:"
+# ^Rename
+"Атын өзгөртүү:"
+# ^Skipped
+"Өтүп жиберилди:"
+# ^CopyDetails
+Деталдарды алмашуу буферине көчүрүү
+# ^LogInstall
+Log орнотуу процесси
+# ^Byte
+Б
+# ^Kilo
+К
+# ^Mega
+М
+# ^Giga
+Г

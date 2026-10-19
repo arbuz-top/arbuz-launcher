@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Launcher</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Pixelify+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+button{font:inherit;color:inherit;cursor:pointer;border:0;padding:0;background:none;text-align:left}
+.hov:hover{filter:brightness(1.16)}
+.card:hover{border-color:#4b4b54 !important}
+.scroll::-webkit-scrollbar{width:8px}
+.scroll::-webkit-scrollbar-thumb{background:#3a3a41;border-radius:4px}
+</style>
+</helmet>
+<div style="width:1120px;height:700px;box-sizing:border-box;display:flex;flex-direction:column;background:#141416;color:#e9e9ec;font-family:Manrope,system-ui,sans-serif;font-size:13px;overflow:hidden">
+
+  <!-- Title bar -->
+  <div style="height:36px;flex:none;display:flex;align-items:stretch;background:#1b1b1e;border-bottom:1px solid #2c2c31">
+    <div style="width:176px;flex:none;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 12px;border-right:1px solid #2c2c31">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{accentLight}}" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3zM4 7.5l8 4.5 8-4.5M12 12v9"></path></svg>
+      <span style="font-weight:800;font-size:12.5px;letter-spacing:.3px">CubeLauncher</span>
+    </div>
+    <div style="flex:1;min-width:0;display:flex;align-items:center;gap:6px;padding:0 10px">
+      <button class="hov" onClick="{{ goBack }}" aria-label="Back" style="width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:4px;color:#9a9aa2">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg>
+      </button>
+      <button class="hov" aria-label="Forward" style="width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:4px;color:#5d5d65">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+      </button>
+      <span style="margin-left:8px;font-weight:700;font-size:13px">{{title}}</span>
+      <div style="flex:1"></div>
+      <button class="hov" aria-label="Open game folder" style="width:28px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:4px;color:#9a9aa2">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"></path></svg>
+      </button>
+      <button class="hov" style="display:flex;align-items:center;gap:6px;height:24px;padding:0 11px;border-radius:12px;background:#26262b;color:#cfcfd6;font-size:12px;font-weight:700">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg>
+        Downloads
+      </button>
+    </div>
+    <button class="hov" aria-label="Minimize" style="width:40px;display:flex;align-items:center;justify-content:center;color:#9a9aa2">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M5 12h14"></path></svg>
+    </button>
+    <button class="hov" aria-label="Maximize" style="width:40px;display:flex;align-items:center;justify-content:center;color:#9a9aa2">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="5" y="5" width="14" height="14"></rect></svg>
+    </button>
+    <button class="hov" aria-label="Close" style="width:40px;display:flex;align-items:center;justify-content:center;color:#9a9aa2">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+    </button>
+  </div>
+
+  <div style="flex:1;min-height:0;display:flex">
+
+    <!-- Sidebar -->
+    <div style="width:176px;flex:none;box-sizing:border-box;display:flex;flex-direction:column;background:#1b1b1e;border-right:1px solid #2c2c31">
+      <button class="hov" onClick="{{ nAcc.go }}" style="width:100%;box-sizing:border-box;display:flex;align-items:center;gap:10px;padding:12px;background:#212125;border-bottom:1px solid #2c2c31">
+        <svg width="38" height="38" viewBox="0 0 8 8" shape-rendering="crispEdges" style="flex:none;border-radius:4px" aria-hidden="true">
+          <rect width="8" height="8" fill="#2a2a30"></rect>
+          <rect x="1" y="0" width="6" height="3" fill="{{me.hair}}"></rect>
+          <rect x="1" y="2" width="6" height="3" fill="{{me.skin}}"></rect>
+          <rect x="1" y="2" width="1" height="1" fill="{{me.hair}}"></rect>
+          <rect x="6" y="2" width="1" height="1" fill="{{me.hair}}"></rect>
+          <rect x="2" y="3" width="1" height="1" fill="#1b1b1f"></rect>
+          <rect x="5" y="3" width="1" height="1" fill="#1b1b1f"></rect>
+          <rect x="0" y="5" width="8" height="3" fill="{{me.shirt}}"></rect>
+        </svg>
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+          <span style="font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{me.name}}</span>
+          <span style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:#9a9aa2">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="{{accentLight}}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"></path></svg>
+            {{me.type}}
+          </span>
+        </span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8d8d96" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+      </button>
+
+      <button class="hov" onClick="{{ nHome.go }}" style="position:relative;width:100%;box-sizing:border-box;height:48px;display:flex;align-items:center;gap:12px;padding:0 14px;background:{{nHome.bg}};color:{{nHome.color}};font-weight:700;font-size:14px;border-bottom:1px solid #26262a">
+        <span style="position:absolute;left:0;top:8px;bottom:8px;width:3px;background:{{nHome.bar}}"></span>
+        <span style="width:28px;height:28px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:5px;background:#2a2a2f;color:{{nHome.icon}}">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10"></path></svg>
+        </span>
+        Home
+      </button>
+      <button class="hov" onClick="{{ nInstalls.go }}" style="position:relative;width:100%;box-sizing:border-box;height:48px;display:flex;align-items:center;gap:12px;padding:0 14px;background:{{nInstalls.bg}};color:{{nInstalls.color}};font-weight:700;font-size:14px;border-bottom:1px solid #26262a">
+        <span style="position:absolute;left:0;top:8px;bottom:8px;width:3px;background:{{nInstalls.bar}}"></span>
+        <span style="width:28px;height:28px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:5px;background:#2a2a2f;color:{{nInstalls.icon}}">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3L3 8l9 5 9-5-9-5zM3 12.5l9 5 9-5M3 17l9 5 9-5"></path></svg>
+        </span>
+        Installations
+      </button>
+      <button class="hov" onClick="{{ nPacks.go }}" style="position:relative;width:100%;box-sizing:border-box;height:48px;display:flex;align-items:center;gap:12px;padding:0 14px;background:{{nPacks.bg}};color:{{nPacks.color}};font-weight:700;font-size:14px;border-bottom:1px solid #26262a">
+        <span style="position:absolute;left:0;top:8px;bottom:8px;width:3px;background:{{nPacks.bar}}"></span>
+        <span style="width:28px;height:28px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:5px;background:#2a2a2f;color:{{nPacks.icon}}">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8zM3 8l9 5 9-5M12 13v8"></path></svg>
+        </span>
+        Modpacks
+      </button>
+
+      <div style="flex:1"></div>
+
+      <button class="hov" onClick="{{ nAcc.go }}" style="position:relative;width:100%;box-sizing:border-box;height:48px;display:flex;align-items:center;gap:12px;padding:0 14px;background:{{nAcc.bg}};color:{{nAcc.color}};font-weight:700;font-size:14px;border-top:1px solid #26262a">
+        <span style="position:absolute;left:0;top:8px;bottom:8px;width:3px;background:{{nAcc.bar}}"></span>
+        <span style="width:28px;height:28px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:5px;background:#2a2a2f;color:{{nAcc.icon}}">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg>
+        </span>
+        Accounts
+      </button>
+      <button class="hov" onClick="{{ nSet.go }}" style="position:relative;width:100%;box-sizing:border-box;height:48px;display:flex;align-items:center;gap:12px;padding:0 14px;background:{{nSet.bg}};color:{{nSet.color}};font-weight:700;font-size:14px;border-top:1px solid #26262a">
+        <span style="position:absolute;left:0;top:8px;bottom:8px;width:3px;background:{{nSet.bar}}"></span>
+        <span style="width:28px;height:28px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:5px;background:#2a2a2f;color:{{nSet.icon}}">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h8M18 6h2M4 12h2M12 12h8M4 18h10M20 18h0"></path><circle cx="15" cy="6" r="2.2"></circle><circle cx="9" cy="12" r="2.2"></circle><circle cx="17" cy="18" r="2.2"></circle></svg>
+        </span>
+        Settings
+      </button>
+    </div>
+
+    <!-- Main column -->
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+      <div class="scroll" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden">
+
+        <!-- HOME -->
+        <sc-if value="{{isHome}}" hint-placeholder-val="{{ true }}">
+          <div>
+            <div style="position:relative;height:292px;overflow:hidden;background:#150e2e">
+              <svg viewBox="0 0 960 340" preserveAspectRatio="xMidYMid slice" width="100%" height="100%" shape-rendering="crispEdges" style="display:block" aria-hidden="true">
+                <defs>
+                  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#150e2e"></stop>
+                    <stop offset="0.55" stop-color="#4b2a52"></stop>
+                    <stop offset="1" stop-color="#c9703a"></stop>
+                  </linearGradient>
+                  <radialGradient id="glow">
+                    <stop offset="0" stop-color="#ffc766" stop-opacity="0.6"></stop>
+                    <stop offset="1" stop-color="#ffc766" stop-opacity="0"></stop>
+                  </radialGradient>
+                  <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#141416" stop-opacity="0"></stop>
+                    <stop offset="1" stop-color="#141416"></stop>
+                  </linearGradient>
+                  <pattern id="blk" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <rect width="40" height="40" fill="none" stroke="#000" stroke-opacity="0.28" stroke-width="2"></rect>
+                  </pattern>
+                </defs>
+                <rect width="960" height="340" fill="url(#sky)"></rect>
+                <g fill="#ffffff" opacity="0.7">
+                  <rect x="60" y="30" width="4" height="4"></rect><rect x="180" y="70" width="4" height="4"></rect><rect x="300" y="24" width="4" height="4"></rect>
+                  <rect x="420" y="56" width="4" height="4"></rect><rect x="540" y="20" width="4" height="4"></rect><rect x="640" y="80" width="4" height="4"></rect><rect x="880" y="36" width="4" height="4"></rect>
+                </g>
+                <rect x="748" y="32" width="72" height="72" fill="#f6ecc8" opacity="0.12"></rect>
+                <rect x="760" y="44" width="48" height="48" fill="#f6ecc8"></rect>
+                <g fill="#3a2552">
+                  <rect x="0" y="170" width="160" height="170"></rect><rect x="160" y="150" width="120" height="190"></rect><rect x="280" y="185" width="140" height="155"></rect>
+                  <rect x="420" y="140" width="120" height="200"></rect><rect x="540" y="170" width="160" height="170"></rect><rect x="700" y="130" width="100" height="210"></rect><rect x="800" y="165" width="160" height="175"></rect>
+                </g>
+                <g fill="#271a3d">
+                  <rect x="0" y="215" width="200" height="125"></rect><rect x="200" y="195" width="140" height="145"></rect><rect x="340" y="225" width="180" height="115"></rect>
+                  <rect x="520" y="200" width="120" height="140"></rect><rect x="640" y="230" width="160" height="110"></rect><rect x="800" y="205" width="160" height="135"></rect>
+                </g>
+                <g fill="#3b2616">
+                  <rect x="54" y="196" width="12" height="50"></rect><rect x="414" y="236" width="12" height="50"></rect><rect x="554" y="244" width="12" height="40"></rect><rect x="894" y="156" width="12" height="50"></rect>
+                </g>
+                <g fill="#1d5a3c">
+                  <rect x="26" y="176" width="68" height="28"></rect><rect x="38" y="152" width="44" height="28"></rect><rect x="48" y="136" width="24" height="20"></rect>
+                  <rect x="386" y="216" width="68" height="28"></rect><rect x="398" y="192" width="44" height="28"></rect><rect x="408" y="176" width="24" height="20"></rect>
+                  <rect x="526" y="224" width="68" height="28"></rect><rect x="538" y="200" width="44" height="28"></rect><rect x="548" y="184" width="24" height="20"></rect>
+                  <rect x="866" y="136" width="68" height="28"></rect><rect x="878" y="112" width="44" height="28"></rect><rect x="888" y="96" width="24" height="20"></rect>
+                </g>
+                <g fill="#5b3b25">
+                  <rect x="0" y="256" width="320" height="84"></rect><rect x="320" y="296" width="320" height="44"></rect><rect x="640" y="256" width="160" height="84"></rect><rect x="800" y="216" width="160" height="124"></rect>
+                </g>
+                <g fill="#4aa043">
+                  <rect x="0" y="240" width="320" height="16"></rect><rect x="320" y="280" width="320" height="16"></rect><rect x="640" y="240" width="160" height="16"></rect><rect x="800" y="200" width="160" height="16"></rect>
+                </g>
+                <g fill="url(#blk)">
+                  <rect x="0" y="240" width="320" height="100"></rect><rect x="320" y="280" width="320" height="60"></rect><rect x="640" y="240" width="160" height="100"></rect><rect x="800" y="200" width="160" height="140"></rect>
+                </g>
+                <circle cx="720" cy="164" r="110" fill="url(#glow)"></circle>
+                <rect x="716" y="176" width="8" height="64" fill="#3b2a1c"></rect>
+                <rect x="702" y="142" width="36" height="8" fill="#3b2a1c"></rect>
+                <rect x="704" y="148" width="32" height="32" fill="#ffcf66"></rect>
+                <rect x="710" y="154" width="20" height="20" fill="#fff2b8"></rect>
+                <g fill="#ffd86b" opacity="0.85">
+                  <rect x="560" y="120" width="4" height="4"></rect><rect x="640" y="150" width="4" height="4"></rect><rect x="760" y="110" width="4" height="4"></rect><rect x="330" y="150" width="4" height="4"></rect>
+                </g>
+                <g>
+                  <rect x="210" y="206" width="14" height="34" fill="#33466f"></rect>
+                  <rect x="226" y="206" width="14" height="34" fill="#2a3a5c"></rect>
+                  <rect x="208" y="168" width="32" height="40" fill="#2f9e8f"></rect>
+                  <rect x="194" y="170" width="14" height="24" fill="#2f9e8f"></rect>
+                  <rect x="194" y="194" width="14" height="10" fill="#e2b48a"></rect>
+                  <rect x="240" y="170" width="14" height="24" fill="#2f9e8f"></rect>
+                  <rect x="240" y="194" width="14" height="10" fill="#e2b48a"></rect>
+                  <rect x="210" y="134" width="28" height="34" fill="#e2b48a"></rect>
+                  <rect x="208" y="128" width="32" height="14" fill="#e8793a"></rect>
+                  <rect x="208" y="142" width="4" height="14" fill="#e8793a"></rect>
+                  <rect x="236" y="142" width="4" height="14" fill="#e8793a"></rect>
+                  <rect x="216" y="148" width="4" height="4" fill="#1b1b1f"></rect>
+                  <rect x="228" y="148" width="4" height="4" fill="#1b1b1f"></rect>
+                </g>
+                <text x="224" y="116" text-anchor="middle" fill="#ffffff" stroke="#000000" stroke-width="3" paint-order="stroke" font-family="Pixelify Sans, monospace" font-size="15">{{me.name}}</text>
+                <rect x="0" y="270" width="960" height="70" fill="url(#fade)"></rect>
+              </svg>
+            </div>
+
+            <div style="padding:16px 22px 24px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                <div style="display:inline-flex;align-items:center;gap:8px;padding:5px 10px;background:#26262b;border-radius:4px;font-family:'Pixelify Sans',monospace;font-size:13px;letter-spacing:.8px;color:#d9d9de">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{accentLight}}" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3 4 4.5 4 9a4 4 0 0 1-8 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 0-8z"></path></svg>
+                  POPULAR MODPACKS
+                </div>
+                <div style="display:flex;gap:8px">
+                  <button class="hov" onClick="{{ srcMod.pick }}" style="height:28px;display:flex;align-items:center;gap:7px;padding:0 14px;border-radius:4px;background:{{srcMod.bg}};border:1px solid {{srcMod.border}};color:{{srcMod.color}};font-weight:700;font-size:12.5px">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M8 12.5l3 3 5-6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    modrinth
+                  </button>
+                  <button class="hov" onClick="{{ srcCf.pick }}" style="height:28px;display:flex;align-items:center;gap:7px;padding:0 14px;border-radius:4px;background:{{srcCf.bg}};border:1px solid {{srcCf.border}};color:{{srcCf.color}};font-weight:700;font-size:12.5px">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h16M6 8l1 9h10l1-9M9 5h6"></path></svg>
+                    curseforge
+                  </button>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
+                <sc-for list="{{homePacks}}" as="p" hint-placeholder-count="4">
+                  <div class="card" style="border:1px solid #2e2e34;border-radius:6px;background:#1c1c20;overflow:hidden;display:flex;flex-direction:column">
+                    <div style="position:relative;height:84px;background:{{p.bg}}">
+                      <div style="position:absolute;left:0;right:0;top:0;bottom:0;background-image:linear-gradient(rgba(0,0,0,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.1) 1px,transparent 1px);background-size:16px 16px"></div>
+                      <span style="position:absolute;left:8px;top:8px;padding:2px 7px;background:rgba(10,10,12,.74);border-radius:3px;font-size:10.5px;font-weight:700">{{p.tag}}</span>
+                    </div>
+                    <div style="position:relative;padding:24px 12px 12px;display:flex;flex-direction:column;gap:4px">
+                      <div style="position:absolute;left:12px;top:-20px;width:38px;height:38px;box-sizing:border-box;border-radius:6px;background:#26262b;border:2px solid #141416;display:flex;align-items:center;justify-content:center;font-family:'Pixelify Sans',monospace;font-weight:600;font-size:15px;color:{{p.ink}}">{{p.ini}}</div>
+                      <div style="font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{p.name}}</div>
+                      <div style="font-size:12px;color:#9a9aa2;line-height:1.4;height:34px;overflow:hidden">{{p.desc}}</div>
+                      <div style="display:flex;align-items:center;gap:12px;margin-top:6px;font-size:11.5px;color:#9a9aa2">
+                        <span style="display:flex;align-items:center;gap:4px">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg>{{p.dl}}
+                        </span>
+                        <span style="display:flex;align-items:center;gap:4px">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="#e5513f" stroke="#e5513f" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"></path></svg>{{p.likes}}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- INSTALLATIONS -->
+        <sc-if value="{{isInstalls}}" hint-placeholder-val="{{ false }}">
+          <div style="padding:26px 30px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+              <div>
+                <div style="font-family:'Pixelify Sans',monospace;font-weight:600;font-size:26px;letter-spacing:.5px">Installations</div>
+                <div style="color:#9a9aa2;margin-top:4px">Every installation lives in its own folder with its own mods, saves and settings.</div>
+              </div>
+              <button class="hov" style="height:38px;display:flex;align-items:center;gap:8px;padding:0 16px;border-radius:5px;background:{{accent}};border:2px solid {{accentLight}};box-shadow:inset 0 -3px 0 {{accentDark}};color:#fff;font-weight:800;font-size:13px">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+                New installation
+              </button>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <sc-for list="{{installs}}" as="r" hint-placeholder-count="4">
+                <div class="card" style="display:flex;align-items:center;gap:8px;padding:10px 14px 10px 10px;border-radius:8px;background:#1c1c20;border:1px solid {{r.border}}">
+                  <button class="hov" onClick="{{ r.select }}" style="flex:1;min-width:0;display:flex;align-items:center;gap:14px">
+                    <span style="width:48px;height:48px;flex:none;border-radius:8px;display:flex;align-items:center;justify-content:center;background:{{r.tone}}">
+                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#101014" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3zM4 7.5l8 4.5 8-4.5M12 12v9"></path></svg>
+                    </span>
+                    <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+                      <span style="display:flex;align-items:center;gap:8px">
+                        <span style="font-weight:800;font-size:15px">{{r.name}}</span>
+                        <sc-if value="{{r.on}}" hint-placeholder-val="{{ false }}">
+                          <span style="padding:1px 7px;border-radius:3px;background:{{accentDark}};color:#fff;font-size:10.5px;font-weight:700">Selected</span>
+                        </sc-if>
+                      </span>
+                      <span style="display:flex;align-items:center;gap:12px;font-size:12px;color:#9a9aa2">
+                        <span style="padding:1px 7px;border-radius:3px;background:#2a2a30;color:#d4d4da;font-weight:700;font-size:11px">{{r.loader}}</span>
+                        <span>{{r.version}}</span>
+                        <span>{{r.ram}} RAM</span>
+                        <span style="font-family:ui-monospace,Menlo,monospace;color:#7d7d86">{{r.path}}</span>
+                      </span>
+                    </span>
+                  </button>
+                  <span style="font-size:12px;color:#8c8c94;margin-right:8px">{{r.last}}</span>
+                  <button class="hov" aria-label="Open folder" style="width:38px;height:38px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:5px;background:#26262b;color:#c4c4cb">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"></path></svg>
+                  </button>
+                  <button class="hov" onClick="{{ r.select }}" style="height:38px;flex:none;padding:0 20px;border-radius:5px;background:{{accent}};border:2px solid {{accentLight}};box-shadow:inset 0 -3px 0 {{accentDark}};color:#fff;font-family:'Pixelify Sans',monospace;font-weight:700;font-size:16px;letter-spacing:1px;display:flex;align-items:center">PLAY</button>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- MODPACKS -->
+        <sc-if value="{{isPacks}}" hint-placeholder-val="{{ false }}">
+          <div style="padding:26px 30px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+              <div style="font-family:'Pixelify Sans',monospace;font-weight:600;font-size:26px;letter-spacing:.5px">Modpacks</div>
+              <div style="display:flex;gap:8px">
+                <button class="hov" onClick="{{ srcMod.pick }}" style="height:30px;display:flex;align-items:center;gap:7px;padding:0 14px;border-radius:4px;background:{{srcMod.bg}};border:1px solid {{srcMod.border}};color:{{srcMod.color}};font-weight:700;font-size:12.5px">modrinth</button>
+                <button class="hov" onClick="{{ srcCf.pick }}" style="height:30px;display:flex;align-items:center;gap:7px;padding:0 14px;border-radius:4px;background:{{srcCf.bg}};border:1px solid {{srcCf.border}};color:{{srcCf.color}};font-weight:700;font-size:12.5px">curseforge</button>
+              </div>
+            </div>
+            <label style="display:flex;align-items:center;gap:10px;height:40px;padding:0 14px;border-radius:6px;background:#1c1c20;border:1px solid #2e2e34;margin-bottom:18px;color:#8c8c94">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.5-4.5"></path></svg>
+              <input aria-label="Search modpacks" placeholder="Search modpacks" style="flex:1;background:none;border:0;outline:0;color:#e9e9ec;font:inherit;font-size:14px">
+            </label>
+            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px">
+              <sc-for list="{{packs}}" as="p" hint-placeholder-count="6">
+                <div class="card" style="border:1px solid #2e2e34;border-radius:6px;background:#1c1c20;overflow:hidden;display:flex;flex-direction:column">
+                  <div style="position:relative;height:78px;background:{{p.bg}}">
+                    <div style="position:absolute;left:0;right:0;top:0;bottom:0;background-image:linear-gradient(rgba(0,0,0,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.1) 1px,transparent 1px);background-size:16px 16px"></div>
+                    <span style="position:absolute;left:8px;top:8px;padding:2px 7px;background:rgba(10,10,12,.74);border-radius:3px;font-size:10.5px;font-weight:700">{{p.tag}}</span>
+                  </div>
+                  <div style="position:relative;padding:24px 14px 14px;display:flex;flex-direction:column;gap:4px">
+                    <div style="position:absolute;left:14px;top:-20px;width:38px;height:38px;box-sizing:border-box;border-radius:6px;background:#26262b;border:2px solid #141416;display:flex;align-items:center;justify-content:center;font-family:'Pixelify Sans',monospace;font-weight:600;font-size:15px;color:{{p.ink}}">{{p.ini}}</div>
+                    <div style="font-weight:800;font-size:14.5px">{{p.name}}</div>
+                    <div style="font-size:12px;color:#9a9aa2;line-height:1.4;height:34px;overflow:hidden">{{p.desc}}</div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+                      <span style="display:flex;align-items:center;gap:12px;font-size:11.5px;color:#9a9aa2">
+                        <span>{{p.dl}} downloads</span>
+                        <span>{{p.likes}} likes</span>
+                      </span>
+                      <button class="hov" onClick="{{ p.toggle }}" style="height:28px;padding:0 14px;border-radius:4px;background:{{p.btnBg}};border:1px solid {{p.btnBorder}};color:{{p.btnColor}};font-weight:800;font-size:12px">{{p.btnLabel}}</button>
+                    </div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ACCOUNTS -->
+        <sc-if value="{{isAccounts}}" hint-placeholder-val="{{ false }}">
+          <div style="padding:26px 30px">
+            <div style="font-family:'Pixelify Sans',monospace;font-weight:600;font-size:26px;letter-spacing:.5px">Accounts</div>
+            <div style="color:#9a9aa2;margin:4px 0 18px">Sign in with Microsoft or ely.by, or play offline with any nickname.</div>
+            <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:26px">
+              <sc-for list="{{accounts}}" as="a" hint-placeholder-count="3">
+                <div class="card" style="display:flex;align-items:center;gap:14px;padding:12px 16px 12px 12px;border-radius:8px;background:#1c1c20;border:1px solid {{a.border}}">
+                  <svg width="46" height="46" viewBox="0 0 8 8" shape-rendering="crispEdges" style="flex:none;border-radius:6px" aria-hidden="true">
+                    <rect width="8" height="8" fill="#2a2a30"></rect>
+                    <rect x="1" y="0" width="6" height="3" fill="{{a.hair}}"></rect>
+                    <rect x="1" y="2" width="6" height="3" fill="{{a.skin}}"></rect>
+                    <rect x="1" y="2" width="1" height="1" fill="{{a.hair}}"></rect>
+                    <rect x="6" y="2" width="1" height="1" fill="{{a.hair}}"></rect>
+                    <rect x="2" y="3" width="1" height="1" fill="#1b1b1f"></rect>
+                    <rect x="5" y="3" width="1" height="1" fill="#1b1b1f"></rect>
+                    <rect x="0" y="5" width="8" height="3" fill="{{a.shirt}}"></rect>
+                  </svg>
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px">
+                    <span style="font-weight:800;font-size:15px">{{a.name}}</span>
+                    <span style="display:flex;align-items:center;gap:8px;font-size:12px;color:#9a9aa2">
+                      <span style="padding:1px 8px;border-radius:3px;background:#2a2a30;color:#d4d4da;font-weight:700;font-size:11px">{{a.type}}</span>
+                      {{a.note}}
+                    </span>
+                  </div>
+                  <button class="hov" onClick="{{ a.use }}" style="height:32px;padding:0 18px;border-radius:5px;background:{{a.btnBg}};border:1px solid {{a.btnBorder}};color:{{a.btnColor}};font-weight:800;font-size:12.5px">{{a.btnLabel}}</button>
+                </div>
+              </sc-for>
+            </div>
+            <div style="font-family:'Pixelify Sans',monospace;font-size:13px;letter-spacing:.8px;color:#c9c9d0;margin-bottom:10px">ADD ACCOUNT</div>
+            <div style="display:flex;gap:10px">
+              <button class="hov" style="height:40px;display:flex;align-items:center;gap:8px;padding:0 18px;border-radius:5px;background:#26262b;border:1px solid #38383f;font-weight:700">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{accentLight}}" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Microsoft
+              </button>
+              <button class="hov" style="height:40px;display:flex;align-items:center;gap:8px;padding:0 18px;border-radius:5px;background:#26262b;border:1px solid #38383f;font-weight:700">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{accentLight}}" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>ely.by
+              </button>
+              <button class="hov" style="height:40px;display:flex;align-items:center;gap:8px;padding:0 18px;border-radius:5px;background:#26262b;border:1px solid #38383f;font-weight:700">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{accentLight}}" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Offline
+              </button>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- SETTINGS -->
+        <sc-if value="{{isSettings}}" hint-placeholder-val="{{ false }}">
+          <div style="padding:26px 30px;display:flex;flex-direction:column;gap:16px">
+            <div style="font-family:'Pixelify Sans',monospace;font-weight:600;font-size:26px;letter-spacing:.5px">Settings</div>
+
+            <div style="padding:18px 20px;border-radius:8px;background:#1c1c20;border:1px solid #2e2e34">
+              <div style="font-weight:800;font-size:14px;margin-bottom:4px">Accent color</div>
+              <div style="color:#9a9aa2;margin-bottom:14px">Used for the PLAY button, active tabs and highlights.</div>
+              <div style="display:flex;gap:12px">
+                <sc-for list="{{swatches}}" as="w" hint-placeholder-count="4">
+                  <button class="hov" onClick="{{ w.pick }}" aria-label="{{w.label}}" style="display:flex;flex-direction:column;align-items:center;gap:6px">
+                    <span style="width:44px;height:44px;box-sizing:border-box;border-radius:6px;background:{{w.color}};border:3px solid {{w.ring}}"></span>
+                    <span style="font-size:11.5px;color:#9a9aa2;font-weight:600">{{w.label}}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="padding:18px 20px;border-radius:8px;background:#1c1c20;border:1px solid #2e2e34;display:flex;flex-direction:column;gap:18px">
+              <div>
+                <div style="font-weight:800;font-size:14px;margin-bottom:10px">Java version</div>
+                <div style="display:inline-flex;gap:6px">
+                  <sc-for list="{{javaOpts}}" as="j" hint-placeholder-count="4">
+                    <button class="hov" onClick="{{ j.pick }}" style="min-width:56px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:5px;background:{{j.bg}};color:{{j.color}};font-weight:800;font-size:13px">Java {{j.v}}</button>
+                  </sc-for>
+                </div>
+              </div>
+              <div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                  <label for="ram" style="font-weight:800;font-size:14px">Default memory</label>
+                  <span style="font-family:'Pixelify Sans',monospace;font-weight:600;font-size:16px;color:{{accentLight}}">{{ramLabel}}</span>
+                </div>
+                <input id="ram" type="range" min="1" max="16" step="1" value="{{ram}}" onChange="{{ setRam }}" style="width:100%;accent-color:{{accent}}">
+              </div>
+            </div>
+
+            <div style="padding:6px 20px;border-radius:8px;background:#1c1c20;border:1px solid #2e2e34">
+              <sc-for list="{{toggles}}" as="t" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0;border-bottom:1px solid #26262b">
+                  <div>
+                    <div style="font-weight:700;font-size:13.5px">{{t.label}}</div>
+                    <div style="color:#8c8c94;margin-top:2px;font-size:12px">{{t.desc}}</div>
+                  </div>
+                  <button onClick="{{ t.toggle }}" role="switch" aria-checked="{{t.on}}" aria-label="{{t.label}}" style="position:relative;width:44px;height:24px;flex:none;border-radius:12px;background:{{t.bg}}">
+                    <span style="position:absolute;top:2px;left:{{t.knob}};width:20px;height:20px;border-radius:10px;background:#ffffff"></span>
+                  </button>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+
+      <!-- Bottom bar -->
+      <div style="height:72px;flex:none;display:flex;align-items:center;background:#1b1b1e;border-top:1px solid #2c2c31">
+        <button class="hov" onClick="{{ nInstalls.go }}" style="width:300px;height:100%;box-sizing:border-box;display:flex;align-items:center;gap:12px;padding:0 18px;border-right:1px solid #2c2c31">
+          <span style="width:42px;height:42px;flex:none;border-radius:6px;display:flex;align-items:center;justify-content:center;background:{{cur.tone}}">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#101014" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3zM4 7.5l8 4.5 8-4.5M12 12v9"></path></svg>
+          </span>
+          <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+            <span style="font-weight:800;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{cur.name}}</span>
+            <span style="font-size:12px;color:#9a9aa2">{{cur.version}} · {{cur.loader}}</span>
+          </span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8d8d96" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+        </button>
+        <div style="flex:1;display:flex;justify-content:center">
+          <button class="hov" style="width:200px;height:52px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-family:'Pixelify Sans',monospace;font-weight:700;font-size:28px;letter-spacing:3px;color:#ffffff;text-align:center;background:{{accent}};border:3px solid {{accentLight}};box-shadow:inset 0 -5px 0 {{accentDark}},0 0 0 3px #0b0b0d,0 4px 0 3px #0b0b0d;text-shadow:0 2px 0 {{accentDark}}">PLAY</button>
+        </div>
+        <div style="width:300px;box-sizing:border-box;display:flex;align-items:center;justify-content:flex-end;gap:10px;padding-right:18px">
+          <button class="hov" aria-label="Open installation folder" style="width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:5px;background:#26262b;border:1px solid #38383f;color:#c4c4cb">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"></path></svg>
+          </button>
+          <button class="hov" onClick="{{ nPacks.go }}" aria-label="Manage mods" style="width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:5px;background:#26262b;border:1px solid #38383f;color:#c4c4cb">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8zM3 8l9 5 9-5M12 13v8"></path></svg>
+          </button>
+          <button class="hov" onClick="{{ nSet.go }}" aria-label="Installation settings" style="width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:5px;background:#26262b;border:1px solid #38383f;color:#c4c4cb">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5 5L3 18l3 3 6.7-6.7a4 4 0 0 0 5-5l-2.5 2.5-2.5-.5-.5-2.5 2.5-2.5z"></path></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"enum","options":["blue","green","purple","red"],"default":"blue","section":"Look"},"$preview":{"width":1120,"height":700}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      screen: 'home',
+      source: 'modrinth',
+      sel: 0,
+      acc: 0,
+      accent: null,
+      java: '21',
+      ram: 4,
+      closeOnPlay: true,
+      showLog: false,
+      ownFolder: true,
+      installed: {}
+    };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const PRESETS = {
+      blue:   { label: 'Blue',   base: '#3d7bff', light: '#9bbcff', dark: '#1f4fc2' },
+      green:  { label: 'Green',  base: '#43b049', light: '#a4e8a0', dark: '#237a2c' },
+      purple: { label: 'Purple', base: '#9a5cf2', light: '#cfb0ff', dark: '#5f2eb4' },
+      red:    { label: 'Red',    base: '#e5513f', light: '#ffa496', dark: '#a52a1c' }
+    };
+    const key = PRESETS[s.accent] ? s.accent : (PRESETS[this.props.accent] ? this.props.accent : 'blue');
+    const A = PRESETS[key];
+
+    const nav = (id) => {
+      const on = s.screen === id;
+      return {
+        bg: on ? '#2d2d33' : 'transparent',
+        bar: on ? A.base : 'transparent',
+        color: on ? '#ffffff' : '#b6b6bd',
+        icon: on ? A.light : '#8d8d96',
+        go: () => this.setState({ screen: id })
+      };
+    };
+
+    const titles = { home: 'Home', installs: 'Installations', packs: 'Modpacks', accounts: 'Accounts', settings: 'Settings' };
+
+    const accounts = [
+      { name: 'Player',     type: 'Microsoft', note: 'Signed in',                hair: '#6b3f1d', skin: '#e2b48a', shirt: '#3f8f7a' },
+      { name: 'Player_ely', type: 'ely.by',    note: 'Signed in',                hair: '#2e2a4a', skin: '#d9a77c', shirt: '#9a5cf2' },
+      { name: 'Guest',      type: 'Offline',   note: 'No sign-in, local skin',   hair: '#c98b3a', skin: '#f0c7a0', shirt: '#e5513f' }
+    ].map((a, i) => {
+      const on = s.acc === i;
+      return Object.assign({}, a, {
+        border: on ? A.base : '#2e2e34',
+        btnLabel: on ? 'Active' : 'Use account',
+        btnBg: on ? A.dark : '#26262b',
+        btnBorder: on ? A.base : '#38383f',
+        btnColor: on ? '#ffffff' : '#d4d4da',
+        use: () => this.setState({ acc: i })
+      });
+    });
+    const me = accounts[s.acc];
+
+    const installs = [
+      { name: 'Performance & Shaders', loader: 'Fabric',   version: '1.21.11', ram: '4 GB', path: 'instances/performance-shaders', last: 'Played today',   tone: '#3fb6c9' },
+      { name: 'Survive 100 Nights',    loader: 'Forge',    version: '1.20.1',  ram: '6 GB', path: 'instances/survive-100-nights',  last: '3 days ago',     tone: '#e08a3c' },
+      { name: 'Skyforge Odyssey',      loader: 'NeoForge', version: '1.21.1',  ram: '8 GB', path: 'instances/skyforge-odyssey',    last: 'Last week',      tone: '#a37af5' },
+      { name: 'Vanilla',               loader: 'Vanilla',  version: '1.21.4',  ram: '2 GB', path: 'instances/vanilla',             last: 'Never played',   tone: '#7bc96f' }
+    ].map((r, i) => {
+      const on = s.sel === i;
+      return Object.assign({}, r, {
+        on: on,
+        border: on ? A.base : '#2e2e34',
+        select: () => this.setState({ sel: i })
+      });
+    });
+    const cur = installs[s.sel];
+
+    const sc = (top, mid, ground) => 'linear-gradient(180deg,' + top + ' 0%,' + mid + ' 58%,' + ground + ' 58%,' + ground + ' 100%)';
+    const SOURCES = {
+      modrinth: [
+        { id: 'm1', name: 'Featherlight Pack',  tag: 'Fabric',      ini: 'FL', ink: '#9bd8ff', dl: '16.9M', likes: '4.8k', desc: 'Smooth frames, short load times and a tidy vanilla feel.',      bg: sc('#2b4f7a', '#8dc0e6', '#3d6b3a') },
+        { id: 'm2', name: 'Survive 100 Nights', tag: 'Challenging', ini: '100', ink: '#ff9a8c', dl: '14.1M', likes: '618',  desc: 'Hold out for a hundred nights as every sunset gets harder.',     bg: sc('#3a1f2e', '#8a3a3a', '#2c2c34') },
+        { id: 'm3', name: 'Skyforge Odyssey',   tag: 'Adventure',   ini: 'SO', ink: '#cfb0ff', dl: '6.5M',  likes: '2.6k', desc: 'Floating islands, forge-crafted relics and a long way up.',     bg: sc('#4a2f7a', '#c79ad8', '#4a8a4a') },
+        { id: 'm4', name: 'Deep Delve',         tag: 'Exploration', ini: 'DD', ink: '#f2c36b', dl: '6.4M',  likes: '1.9k', desc: 'Bigger caves, new ores and more reasons to keep digging down.', bg: sc('#2a2438', '#5a4a6a', '#6b4a2e') },
+        { id: 'm5', name: 'Tidal Realms',       tag: 'Adventure',   ini: 'TR', ink: '#7fe0d0', dl: '3.2M',  likes: '1.1k', desc: 'Ocean-first survival with reefs, wrecks and island hopping.',   bg: sc('#1d4f6a', '#4fb3c9', '#d8c27a') },
+        { id: 'm6', name: 'Cozy Hearth',        tag: 'Relaxed',     ini: 'CH', ink: '#ffc98a', dl: '2.4M',  likes: '960',  desc: 'Calm building, farming and decorating with warm lighting.',     bg: sc('#5a3a2a', '#e0a46a', '#5a8a3a') }
+      ],
+      curseforge: [
+        { id: 'c1', name: 'Ironbound Tales',    tag: 'Forge',       ini: 'IT', ink: '#c4c4cb', dl: '22.3M', likes: '5.1k', desc: 'Story-driven quests across a world of fortresses and ruins.',  bg: sc('#2b2f3a', '#7a8294', '#4a4f5a') },
+        { id: 'c2', name: 'Alloy & Arcana',     tag: 'Magic',       ini: 'AA', ink: '#cfb0ff', dl: '9.8M',  likes: '3.3k', desc: 'Spellcraft meets machinery in a long progression pack.',       bg: sc('#2a1f4a', '#7a5ad8', '#3a2a5a') },
+        { id: 'c3', name: 'Hollow Frontier',    tag: 'Adventure',   ini: 'HF', ink: '#f2c36b', dl: '7.1M',  likes: '2.0k', desc: 'Explore a ruined frontier and build the first lit outpost.',    bg: sc('#3a2a1f', '#c98a4a', '#5a3a24') },
+        { id: 'c4', name: 'Peak Performance',   tag: 'Optimized',   ini: 'PP', ink: '#9bd8ff', dl: '12.6M', likes: '4.2k', desc: 'A lean set of optimizations for older machines.',               bg: sc('#1f3a5a', '#6ab0e0', '#3a6a4a') },
+        { id: 'c5', name: 'Village Chronicles', tag: 'Relaxed',     ini: 'VC', ink: '#ffc98a', dl: '4.4M',  likes: '1.4k', desc: 'Grow a village, trade with neighbours and keep a journal.',     bg: sc('#4a3a2a', '#e8b878', '#6a9a4a') },
+        { id: 'c6', name: 'Starfall Tech',      tag: 'Tech',        ini: 'ST', ink: '#7fe0d0', dl: '5.5M',  likes: '1.7k', desc: 'Reactors, rockets and an orbit worth reaching.',                bg: sc('#101a2e', '#2a4a7a', '#2a3a4a') }
+      ]
+    };
+    const list = SOURCES[s.source].map((p) => {
+      const done = !!s.installed[p.id];
+      return Object.assign({}, p, {
+        btnLabel: done ? 'Installed' : 'Install',
+        btnBg: done ? '#26262b' : A.base,
+        btnBorder: done ? '#38383f' : A.light,
+        btnColor: done ? '#9a9aa2' : '#ffffff',
+        toggle: () => {
+          const next = Object.assign({}, this.state.installed);
+          next[p.id] = !next[p.id];
+          this.setState({ installed: next });
+        }
+      });
+    });
+
+    const src = (id) => {
+      const on = s.source === id;
+      return {
+        bg: on ? '#2c2c33' : '#1c1c20',
+        border: on ? A.base : '#2e2e34',
+        color: on ? '#ffffff' : '#8c8c94',
+        pick: () => this.setState({ source: id })
+      };
+    };
+
+    const swatches = Object.keys(PRESETS).map((k) => ({
+      label: PRESETS[k].label,
+      color: PRESETS[k].base,
+      ring: k === key ? '#ffffff' : 'transparent',
+      pick: () => this.setState({ accent: k })
+    }));
+
+    const javaOpts = ['8', '11', '17', '21'].map((v) => {
+      const on = s.java === v;
+      return { v: v, bg: on ? A.base : '#26262b', color: on ? '#ffffff' : '#c4c4cb', pick: () => this.setState({ java: v }) };
+    });
+
+    const mkToggle = (field, label, desc) => {
+      const on = !!s[field];
+      return {
+        label: label,
+        desc: desc,
+        on: on,
+        bg: on ? A.base : '#3a3a41',
+        knob: on ? '22px' : '2px',
+        toggle: () => { const o = {}; o[field] = !this.state[field]; this.setState(o); }
+      };
+    };
+    const toggles = [
+      mkToggle('closeOnPlay', 'Close launcher when the game starts', 'Reopens when you quit the game.'),
+      mkToggle('showLog', 'Show game log window', 'Useful when testing mods or shaders.'),
+      mkToggle('ownFolder', 'Separate folder per installation', 'Mods, saves and configs never mix between builds.')
+    ];
+
+    return {
+      accent: A.base,
+      accentLight: A.light,
+      accentDark: A.dark,
+      title: titles[s.screen],
+      isHome: s.screen === 'home',
+      isInstalls: s.screen === 'installs',
+      isPacks: s.screen === 'packs',
+      isAccounts: s.screen === 'accounts',
+      isSettings: s.screen === 'settings',
+      nHome: nav('home'),
+      nInstalls: nav('installs'),
+      nPacks: nav('packs'),
+      nAcc: nav('accounts'),
+      nSet: nav('settings'),
+      goBack: () => this.setState({ screen: 'home' }),
+      me: me,
+      cur: cur,
+      accounts: accounts,
+      installs: installs,
+      homePacks: list.slice(0, 4),
+      packs: list,
+      srcMod: src('modrinth'),
+      srcCf: src('curseforge'),
+      swatches: swatches,
+      javaOpts: javaOpts,
+      toggles: toggles,
+      ram: s.ram,
+      ramLabel: s.ram + ' GB',
+      setRam: (e) => this.setState({ ram: Number(e.target.value) })
+    };
+  }
+}
+</script>
+</body>
+</html>
