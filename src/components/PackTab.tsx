@@ -192,8 +192,9 @@ export function PackTab({ inst, initialMod }: { inst: Instance; initialMod: stri
     }
   };
 
-  const doExport = async (fmt: 'mrpack' | 'zip') => {
+  const doExport = async (fmt: 'mrpack' | 'zip' | 'mmc') => {
     if (!form) return;
+    const ext = fmt === 'mmc' ? 'zip' : fmt;
     const base =
       (form.name || inst.name)
         .replace(/[\\/:*?"<>|]+/g, '_')
@@ -201,8 +202,8 @@ export function PackTab({ inst, initialMod }: { inst: Instance; initialMod: stri
         .slice(0, 60) || 'pack';
     try {
       const dest = await save({
-        defaultPath: `${dataRoot}\\${base}-${form.version || '1.0.0'}.${fmt}`,
-        filters: [{ name: fmt === 'mrpack' ? 'Modrinth pack' : 'ZIP', extensions: [fmt] }],
+        defaultPath: `${dataRoot}\\${base}-${form.version || '1.0.0'}${fmt === 'mmc' ? '-mmc' : ''}.${ext}`,
+        filters: [{ name: fmt === 'mrpack' ? 'Modrinth pack' : 'ZIP', extensions: [ext] }],
       });
       if (!dest) return;
       setExporting(fmt);
@@ -341,7 +342,7 @@ export function PackTab({ inst, initialMod }: { inst: Instance; initialMod: stri
         <div className="row g8" style={{ justifyContent: 'space-between' }}>
           <div>
             <b>{t('Проверка сборки')}</b>
-            <div className="hint">{t('Дубликаты, зависимости, версия Java')}</div>
+            <div className="hint">{t('Дубликаты, версии модов, память, зависимости и Java')}</div>
           </div>
           <button className="btn sm" disabled={checking} onClick={() => void check()}>
             {checking ? t('Проверяю…') : t('Проверить')}
@@ -482,15 +483,18 @@ export function PackTab({ inst, initialMod }: { inst: Instance; initialMod: stri
         <b>{t('Экспорт')}</b>
         <div className="hint" style={{ marginTop: 4 }}>
           {t(
-            '.mrpack — стандартный формат Modrinth (моды, конфиги, ресурспаки). .zip — папка сборки для ручной установки.',
+            '.mrpack — формат Modrinth: моды скачиваются по ссылкам, конфиги внутри архива. .zip — формат CurseForge (manifest.json + overrides). MultiMC/Prism .zip — instance.cfg, mmc-pack.json и папка .minecraft, такой архив импортируется в Prism и MultiMC.',
           )}
         </div>
-        <div className="row g8" style={{ marginTop: 12 }}>
+        <div className="row g8" style={{ marginTop: 12, flexWrap: 'wrap' }}>
           <button className="btn pr" disabled={!!exporting} onClick={() => void doExport('mrpack')}>
             {exporting === 'mrpack' ? t('Экспортирую…') : t('Экспорт .mrpack')}
           </button>
           <button className="btn" disabled={!!exporting} onClick={() => void doExport('zip')}>
             {exporting === 'zip' ? t('Экспортирую…') : t('Экспорт .zip')}
+          </button>
+          <button className="btn" disabled={!!exporting} onClick={() => void doExport('mmc')}>
+            {exporting === 'mmc' ? t('Экспортирую…') : t('Экспорт MultiMC/Prism .zip')}
           </button>
         </div>
       </div>

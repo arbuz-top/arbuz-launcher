@@ -143,12 +143,68 @@ pub async fn set_config(state: State<'_, AppState>, mut cfg: Config) -> Res<()> 
     Ok(())
 }
 
+/// Экспорт настроек в JSON. Ключ CurseForge в файл не попадает.
 #[tauri::command]
-pub async fn list_instances() -> Res<Vec<Instance>> {
-    load_instances().await
+pub async fn export_settings(state: State<'_, AppState>, path: String) -> Res<()> {
+    let mut cfg = state.config.lock().await.clone();
+    cfg.curseforge_api_key = CF_KEY_MASK.to_string();
+    let p = settings_path(&path)?;
+    let data = serde_json::to_vec_pretty(&cfg)?;
+    tokio::fs::write(&p, data).await?;
+    Ok(())
+}
+
+/// Импорт настроек из JSON. Возвращает применённый конфиг.
+#[tauri::command]
+pub async fn import_settings(state: State<'_, AppState>, path: String) -> Res<Config> {
+    let p = settings_path(&path)?;
+    let meta = tokio::fs::metadata(&p).await?;
+    if meta.len() > 1024 * 1024 {
+        return err("Файл настроек слишком большой");
+    }
+    let text = tokio::fs::read_to_string(&p).await?;
+    let mut cfg: Config = serde_json::from_str(&text)
+        .map_err(|e| AppError::Msg(format!("Это не файл настроек Arbuz Launcher: {e}")))?;
+    cfg.sanitize();
+    // Маска вместо ключа — оставляем текущий ключ.
+    if cfg.curseforge_api_key == CF_KEY_MASK {
+        cfg.curseforge_api_key = state.config.lock().await.curseforge_api_key.clone();
+    }
+    // Визард знакомства после импорта не нужен.
+    cfg.onboarded = true;
+    store::write_json_atomic(&paths::config_file(), &cfg).await?;
+    *state.config.lock().await = cfg.clone();
+    Ok(cfg)
+}
+
+/// Путь к файлу настроек: абсолютный, без `..`, с расширением `.json`.
+fn settings_path(raw: &str) -> Res<std::path::PathBuf> {
+    let p = raw.trim();
+    if p.is_empty() {
+        return err("Не указан файл настроек");
+    }
+    if p.contains("..") {
+        return err("Некорректный путь к файлу настроек");
+    }
+    let path = std::path::PathBuf::from(p);
+    if !path.is_absolute() {
+        return err("Укажите полный путь к файлу настроек");
+    }
+    if !path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.eq_ignore_ascii_case("json"))
+        .unwrap_or(false)
+    {
+        return err("Файл настроек должен быть .json");
+    }
+    Ok(path)
 }
 
 #[tauri::command]
+pub async fn list_instances() -> Res<Vec<Instance>> {
+    load_instances().await
+}#[tauri::command]
 pub async fn create_instance(
     state: State<'_, AppState>,
     name: String,
@@ -187,6 +243,8 @@ pub async fn create_instance(
         playtime_days: std::collections::BTreeMap::new(),
         last_played: None,
         created,
+        pack: None,
+        game_dir: None,
     };
 
     tokio::fs::create_dir_all(paths::instance_dir(&id)).await?;
@@ -221,10 +279,178 @@ pub async fn update_instance(instance: Instance) -> Res<()> {
     store::write_json_atomic(&paths::instance_json(&instance.id), &instance).await
 }
 
+/// Привязывает папку игры к профилю: junction на Windows (без прав админа,
+/// работает между дисками), symlink на macOS/Linux.
+async fn link_game_dir(link: &std::path::Path, target: &std::path::Path) -> Res<()> {
+    if let Some(parent) = link.parent() {
+        tokio::fs::create_dir_all(parent).await?;
+    }
+    #[cfg(windows)]
+    {
+        let mut cmd = tokio::process::Command::new("cmd");
+        cmd.args(["/C", "mklink", "/J"]).arg(link).arg(target);
+        crate::winproc::hide_console(&mut cmd);
+        let out = cmd.output().await?;
+        if !out.status.success() {
+            let e = String::from_utf8_lossy(&out.stderr);
+            return err(format!("Не удалось привязать папку игры: {}", e.trim()));
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        tokio::fs::symlink(target, link).await?;
+    }
+    Ok(())
+}
+
+/// Снимает ссылку, не трогая саму папку с игрой.
+async fn unlink_game_dir(link: &std::path::Path) -> Res<()> {
+    let meta = match tokio::fs::symlink_metadata(link).await {
+        Ok(m) => m,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(e) => return Err(e.into()),
+    };
+    if meta.file_type().is_symlink() {
+        tokio::fs::remove_file(link).await?;
+    } else {
+        #[cfg(windows)]
+        tokio::fs::remove_dir(link).await?;
+        #[cfg(not(windows))]
+        tokio::fs::remove_dir_all(link).await?;
+    }
+    Ok(())
+}
+
+/// Переносит содержимое старой папки игры в новую (только если та пустая).
+fn move_children(from: &std::path::Path, to: &std::path::Path) -> std::io::Result<()> {
+    for e in std::fs::read_dir(from)? {
+        let e = e?;
+        let dst = to.join(e.file_name());
+        if dst.exists() {
+            continue;
+        }
+        let src = e.path();
+        if std::fs::rename(&src, &dst).is_err() {
+            copy_recursive(&src, &dst)?;
+            if src.is_dir() {
+                std::fs::remove_dir_all(&src)?;
+            } else {
+                std::fs::remove_file(&src)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn copy_recursive(src: &std::path::Path, dst: &std::path::Path) -> std::io::Result<()> {
+    if src.is_dir() {
+        std::fs::create_dir_all(dst)?;
+        for e in std::fs::read_dir(src)? {
+            let e = e?;
+            copy_recursive(&e.path(), &dst.join(e.file_name()))?;
+        }
+    } else {
+        std::fs::copy(src, dst)?;
+    }
+    Ok(())
+}
+
+/// Пустая папка игры профиля (на случай сброса или ручного удаления ссылки).
+async fn ensure_profile_game_dir(id: &str) -> Res<()> {
+    let dir = paths::instance_minecraft_dir(id);
+    tokio::fs::create_dir_all(&dir).await?;
+    for sub in ["mods", "config", "saves", "resourcepacks", "shaderpacks", "logs"] {
+        tokio::fs::create_dir_all(dir.join(sub)).await?;
+    }
+    Ok(())
+}
+
+/// Своя папка игры: `path = None` — вернуть папку профиля.
+#[tauri::command]
+pub async fn set_instance_game_dir(id: String, path: Option<String>) -> Res<Instance> {
+    paths::validate_instance_id(&id)?;
+    let mut inst = store::read_instance(&id).await?;
+    let link = paths::instance_minecraft_dir(&id);
+    let custom = path.map(|p| p.trim().to_string()).filter(|p| !p.is_empty());
+
+    let reset = match custom.as_deref() {
+        None => true,
+        Some(raw) => {
+            if raw.contains("..") {
+                return err("Некорректный путь к папке игры");
+            }
+            let p = std::path::PathBuf::from(raw);
+            if !p.is_absolute() {
+                return err("Укажите полный путь к папке игры");
+            }
+            let same = std::fs::canonicalize(&p).ok() == std::fs::canonicalize(&link).ok();
+            same
+        }
+    };
+
+    if reset {
+        if inst.game_dir.is_some() {
+            unlink_game_dir(&link).await?;
+            ensure_profile_game_dir(&id).await?;
+            inst.game_dir = None;
+        } else {
+            ensure_profile_game_dir(&id).await?;
+        }
+    } else {
+        let raw = custom.unwrap_or_default();
+        let target = std::path::PathBuf::from(&raw);
+        tokio::fs::create_dir_all(&target).await?;
+        // Внутрь профиля ссылку не кладём: получится рекурсия.
+        let inst_dir = paths::instance_dir(&id);
+        let canon_target = std::fs::canonicalize(&target).unwrap_or_else(|_| target.clone());
+        let canon_inst = std::fs::canonicalize(&inst_dir).unwrap_or_else(|_| inst_dir.clone());
+        if canon_target.starts_with(&canon_inst) {
+            let _ = ensure_profile_game_dir(&id).await;
+            return err("Выберите папку вне профиля лаунчера");
+        }
+
+        if inst.game_dir.is_some() {
+            unlink_game_dir(&link).await?;
+        } else if tokio::fs::metadata(&link).await.map(|m| m.is_dir()).unwrap_or(false) {
+            // Первый раз: если новая папка пустая, переносим туда моды и миры.
+            let empty = std::fs::read_dir(&target)?.next().is_none();
+            if empty {
+                let (from, to) = (link.clone(), target.clone());
+                tokio::task::spawn_blocking(move || move_children(&from, &to)).await??;
+            }
+            if tokio::fs::remove_dir(&link).await.is_err() {
+                // В папке профиля что-то осталось — не удаляем, а отодвигаем в сторону.
+                let stamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
+                let backup = paths::instance_dir(&id).join(format!("minecraft.old-{stamp}"));
+                tokio::fs::rename(&link, &backup).await?;
+            }
+        }
+
+        if let Err(e) = link_game_dir(&link, &target).await {
+            // Профиль не должен остаться без папки игры.
+            ensure_profile_game_dir(&id).await?;
+            inst.game_dir = None;
+            let _ = store::write_instance(&inst).await;
+            return Err(e);
+        }
+        inst.game_dir = Some(target.to_string_lossy().to_string());
+    }
+
+    store::write_instance(&inst).await?;
+    Ok(inst)
+}
+
 #[tauri::command]
 pub async fn delete_instance(id: String) -> Res<()> {
     paths::validate_instance_id(&id)?;
     let dir = paths::instance_dir(&id);
+    // Если папка игры вынесена — снимаем ссылку, иначе remove_dir_all удалит
+    // данные игрока вместе с профилем.
+    if let Ok(inst) = store::read_instance(&id).await {
+        if inst.game_dir.is_some() {
+            let _ = unlink_game_dir(&paths::instance_minecraft_dir(&id)).await;
+        }
+    }
     if tokio::fs::metadata(&dir).await.is_ok() {
         tokio::fs::remove_dir_all(&dir).await?;
     }
@@ -504,9 +730,10 @@ pub async fn launch_instance(
     state: State<'_, AppState>,
     id: String,
     world: Option<String>,
+    server: Option<String>,
 ) -> Res<()> {
     paths::validate_instance_id(&id)?;
-    crate::mojang::launch::launch(app, state.inner(), id, world).await
+    crate::mojang::launch::launch(app, state.inner(), id, world, server).await
 }
 
 #[tauri::command]
@@ -627,9 +854,14 @@ pub async fn check_updates(state: State<'_, AppState>, id: String) -> Res<Vec<cr
 }
 
 #[tauri::command]
-pub async fn apply_updates(app: AppHandle, state: State<'_, AppState>, id: String) -> Res<u32> {
+pub async fn apply_updates(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+    files: Vec<String>,
+) -> Res<u32> {
     paths::validate_instance_id(&id)?;
-    crate::catalog::apply_updates(&app, &state, &id).await
+    crate::catalog::apply_updates(&app, &state, &id, files).await
 }
 
 // ---------------------------------------------------------------------------
@@ -654,6 +886,31 @@ pub async fn list_modpack_versions(
     project_id: String,
 ) -> Res<Vec<crate::packs::PackVersion>> {
     crate::packs::list_versions(&state, &source, &project_id).await
+}
+
+/// Есть ли для профиля более новая версия сборки.
+#[tauri::command]
+pub async fn pack_update(
+    state: State<'_, AppState>,
+    id: String,
+) -> Res<Option<crate::packs::PackUpdate>> {
+    paths::validate_instance_id(&id)?;
+    crate::packs::check_pack(&state, &id).await
+}
+
+/// Ставит новую версию сборки поверх профиля.
+#[tauri::command]
+pub async fn apply_pack_update(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+    version_id: String,
+) -> Res<Instance> {
+    paths::validate_instance_id(&id)?;
+    if version_id.trim().is_empty() {
+        return err("Не выбрана версия сборки");
+    }
+    crate::packs::apply_update(&app, &state, &id, &version_id).await
 }
 
 #[tauri::command]
@@ -715,6 +972,9 @@ pub async fn ai_diagnose_crash(
 ///
 /// Скачивание и установка выполняются обычными командами каталога —
 /// здесь только подбор состава под версию, загрузчик и язык интерфейса.
+/// `limit` — предел числа модов (0 или None — без ограничения),
+/// `source` — приоритетный каталог (пусто — сразу Modrinth и CurseForge),
+/// `model` — выбранная модель (пусто — первая доступная бесплатная).
 #[tauri::command]
 pub async fn ai_pack_plan(
     state: State<'_, AppState>,
@@ -722,11 +982,23 @@ pub async fn ai_pack_plan(
     lang: String,
     mc_version: Option<String>,
     loader: Option<String>,
+    limit: Option<u32>,
+    source: Option<String>,
+    model: Option<String>,
 ) -> Res<crate::builder::PackPlan> {
     if !state.config.lock().await.ai_builder {
         return err("ИИ-ассистент сборок выключен в настройках");
     }
-    crate::builder::plan(&state, &prompt, &lang, mc_version, loader).await
+    crate::builder::plan(
+        &state, &prompt, &lang, mc_version, loader, limit, source, model,
+    )
+    .await
+}
+
+/// Бесплатные модели, которыми может собирать ИИ-ассистент.
+#[tauri::command]
+pub async fn ai_models() -> Res<Vec<String>> {
+    crate::ai::models().await
 }
 
 /// Открывает папку `crash-reports` профиля (создаёт её при необходимости).
@@ -831,6 +1103,11 @@ pub async fn get_news(state: State<'_, AppState>) -> Res<Vec<crate::news::NewsIt
 }
 
 #[tauri::command]
+pub fn data_dir() -> String {
+    paths::root().to_string_lossy().to_string()
+}
+
+#[tauri::command]
 pub async fn open_data_folder(app: AppHandle) -> Res<()> {
     let dir = paths::root();
     tokio::fs::create_dir_all(&dir).await?;
@@ -893,4 +1170,113 @@ pub async fn clear_home_wallpaper() -> Res<()> {
         }
     }
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// ЭТАП 10: игра по сети
+// ---------------------------------------------------------------------------
+
+/// Порт, который Minecraft открыл для сети (ищем в логе игры).
+#[tauri::command]
+pub async fn lan_port(id: String) -> Res<Option<u16>> {
+    paths::validate_instance_id(&id)?;
+    crate::net::lan_port(&id).await
+}
+
+/// Просит роутер пробросить порт — друзья смогут подключиться по внешнему IP.
+#[tauri::command]
+pub async fn net_share(port: u16) -> Res<crate::net::Share> {
+    if port == 0 {
+        return err("Неверный порт");
+    }
+    crate::net::share(port).await
+}
+
+/// Закрывает проброс порта.
+#[tauri::command]
+pub async fn net_unshare() -> Res<()> {
+    crate::net::unshare().await
+}
+
+/// Открыт ли проброс прямо сейчас (например, после перезапуска окна).
+#[tauri::command]
+pub fn net_active() -> Option<crate::net::Share> {
+    crate::net::active()
+}
+
+/// P2P: принимающий показывает код, друзьям проброс порта и белый IP не нужны.
+#[tauri::command]
+pub async fn p2p_host(port: u16, name: String) -> Res<crate::tunnel::P2p> {
+    if port == 0 {
+        return err("Неверный порт");
+    }
+    crate::tunnel::host(port, name).await
+}
+
+/// P2P: комната заранее — код можно отдать друзьям до запуска игры.
+/// Порт лаунчер найдёт сам, когда в игре нажмут «Открыть для сети».
+#[tauri::command]
+pub async fn p2p_room(name: String) -> Res<crate::tunnel::P2p> {
+    crate::tunnel::room(name).await
+}
+
+/// P2P: подключаемся к другу по коду и открываем локальный порт для Minecraft.
+#[tauri::command]
+pub async fn p2p_join(code: String, name: String) -> Res<crate::tunnel::P2p> {
+    crate::tunnel::join(&code, name).await
+}
+
+/// P2P: закрыть канал.
+#[tauri::command]
+pub async fn p2p_stop() -> Res<()> {
+    crate::tunnel::stop().await;
+    Ok(())
+}
+
+/// P2P: открыт ли канал прямо сейчас.
+#[tauri::command]
+pub fn p2p_active() -> Option<crate::tunnel::P2p> {
+    crate::tunnel::active()
+}
+
+/// P2P: кто сейчас в комнате и кто её владелец.
+#[tauri::command]
+pub fn p2p_room_state() -> Option<crate::tunnel::Room> {
+    crate::tunnel::room_state()
+}
+
+/// P2P: выгнать игрока (хозяин — сразу, владелец-гость — через хозяина).
+#[tauri::command]
+pub async fn p2p_kick(slot: u64) -> Res<()> {
+    crate::tunnel::kick(slot).await
+}
+
+/// P2P: передать права владельца другому игроку.
+#[tauri::command]
+pub async fn p2p_admin(slot: u64) -> Res<()> {
+    crate::tunnel::make_admin(slot).await
+}
+
+/// P2P: новый код комнаты (старый перестаёт пускать).
+#[tauri::command]
+pub async fn p2p_new_code() -> Res<crate::tunnel::P2p> {
+    crate::tunnel::new_code().await
+}
+
+/// P2P: одноразовое сообщение игроку («вас исключили», «связь потерялась»).
+#[tauri::command]
+pub fn p2p_notice() -> Option<String> {
+    crate::tunnel::notice()
+}
+
+// ---------------------------------------------------------------------------
+// Обновление лаунчера
+// ---------------------------------------------------------------------------
+
+/// Есть ли на GitHub более новый релиз лаунчера.
+#[tauri::command]
+pub async fn check_launcher_update(
+    state: State<'_, AppState>,
+) -> Res<Option<crate::updates::LauncherUpdate>> {
+    crate::updates::check(&state).await
 }

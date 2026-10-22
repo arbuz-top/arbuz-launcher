@@ -18,13 +18,15 @@ ManifestDPIAware true
 !define APP_NAME "Arbuz Launcher"
 !define APP_EXE "arbuz-launcher.exe"
 !define APP_PUBLISHER "Arbuz"
-!define APP_DATA "$APPDATA\Arbuz Launcher"
+!define APP_DATA "$PROFILE\arbuz-launcher"
+!define APP_DATA_BESIDE "$INSTDIR\arbuz-launcher"
+!define APP_DATA_OLD "$APPDATA\Arbuz Launcher"
 !define APP_KEY "Software\${APP_PUBLISHER}\${APP_NAME}"
 !define UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
 
 Name "${APP_NAME}"
 OutFile "${ROOT}\src-tauri\target\release\bundle\arbuz\Arbuz-Launcher-${APP_VERSION}-setup.exe"
-InstallDir "$LOCALAPPDATA\Programs\${APP_NAME}"
+InstallDir "$PROFILE\arbuz-launcher"
 InstallDirRegKey HKCU "${APP_KEY}" "InstallDir"
 RequestExecutionLevel user
 ShowInstDetails show
@@ -88,6 +90,7 @@ VIAddVersionKey /LANG=1033 "LegalCopyright" "${APP_PUBLISHER}"
 !insertmacro MUI_RESERVEFILE_LANGDLL
 
 !include "lang\custom.nsh"
+!include "lang\strings.nsh"
 
 LangString RunApp ${LANG_ENGLISH} "Run ${APP_NAME}"
 LangString RunApp ${LANG_RUSSIAN} "Запустить ${APP_NAME}"
@@ -156,6 +159,11 @@ Section "Uninstall"
 
   IfSilent keep
   MessageBox MB_YESNO|MB_ICONQUESTION "$(AskData)" IDNO keep
+    ; Данные лежат в папке лаунчера или в отдельной папке рядом с ним.
+    RMDir /r "${APP_DATA_BESIDE}"
     RMDir /r "${APP_DATA}"
+    RMDir /r "${APP_DATA_OLD}"
+    StrCmp "$INSTDIR" "${APP_DATA}" 0 keep
+      RMDir /r "$INSTDIR"
   keep:
 SectionEnd

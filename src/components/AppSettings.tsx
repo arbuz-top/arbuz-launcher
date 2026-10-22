@@ -1,22 +1,23 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { convertFileSrc } from '@tauri-apps/api/core';
-import { open } from '@tauri-apps/plugin-dialog';
+import { open, save } from '@tauri-apps/plugin-dialog';
 import { api, type Config } from '../lib/api';
 import { onProgress } from '../lib/events';
-import { LANGS, normLang, useT } from '../lib/i18n';
+import { LANG_EN, LANGS, normLang, useT } from '../lib/i18n';
 import { setConfigLive, useStore } from '../store';
 import { AnimSettings } from './AnimSettings';
 import { ColorPicker, PRESET_COLORS } from './ColorPicker';
 import { Toggle } from './Controls';
 import { ThemePicker } from './ThemePicker';
 
-type ToggleKey = 'closeOnLaunch' | 'showConsole' | 'checkUpdates' | 'hideEmpty';
+type ToggleKey = 'closeOnLaunch' | 'showConsole' | 'hideEmpty' | 'checkLauncherUpdates' | 'closeToTray';
 
 const TOGGLES: [ToggleKey, string][] = [
-  ['closeOnLaunch', 'Закрывать лаунчер при запуске игры'],
+  ['closeOnLaunch', 'Скрывать лаунчер при запуске игры'],
   ['showConsole', 'Показывать консоль игры'],
-  ['checkUpdates', 'Проверять обновления модов'],
   ['hideEmpty', 'Скрывать пустые профили'],
+  ['checkLauncherUpdates', 'Проверять обновления лаунчера'],
+  ['closeToTray', 'Прятать в трей при закрытии'],
 ];
 
 export function AppSettings() {
@@ -24,11 +25,20 @@ export function AppSettings() {
   const t = useT();
   const c = s.config;
   const [apiKey, setApiKey] = useState(c.curseforgeApiKey);
+  const [models, setModels] = useState<string[]>([]);
   const set = (patch: Partial<Config>) => s.setConfig({ ...c, ...patch });
   // Акцент меняется перетаскиванием: пишем на диск с задержкой, а не на каждый пиксель.
   const setAccent = (accent: string) => setConfigLive({ ...useStore.getState().config, accent });
   const [javaBusy, setJavaBusy] = useState<number | null>(null);
   const [javaPct, setJavaPct] = useState(0);
+
+  // Список моделей Zen для выбора: грузится один раз при открытии настроек.
+  useEffect(() => {
+    void api
+      .aiModels()
+      .then(setModels)
+      .catch(() => {});
+  }, []);
 
   // Прогресс скачивания JRE приходит событием с id "java".
   useEffect(() => {
@@ -72,6 +82,38 @@ export function AppSettings() {
     }
   };
 
+  /** Сохраняет настройки (тема, язык, Java, изоляция…) в JSON-файл. */
+  const exportSettings = async () => {
+    try {
+      const dest = await save({
+        defaultPath: 'arbuz-launcher-settings.json',
+        filters: [{ name: 'JSON', extensions: ['json'] }],
+      });
+      if (!dest) return;
+      await api.exportSettings(dest);
+      useStore.getState().toastMsg(t('Настройки сохранены в файл'));
+    } catch (e) {
+      useStore.getState().toastMsg(String(e));
+    }
+  };
+
+  /** Читает JSON-файл настроек и сразу применяет его. */
+  const importSettings = async () => {
+    try {
+      const p = await open({
+        multiple: false,
+        directory: false,
+        filters: [{ name: 'JSON', extensions: ['json'] }],
+      });
+      if (typeof p !== 'string') return;
+      const cfg = await api.importSettings(p);
+      useStore.getState().setConfig(cfg);
+      useStore.getState().toastMsg(t('Настройки импортированы'));
+    } catch (e) {
+      useStore.getState().toastMsg(String(e));
+    }
+  };
+
   const pickHomeWallpaper = async () => {
     try {
       const p = await open({
@@ -107,6 +149,16 @@ export function AppSettings() {
       await api.openDataFolder();
     } catch (e) {
       useStore.getState().toastMsg(String(e));
+    }
+  };
+
+  const checkUpd = async () => {
+    try {
+      const u = await api.checkLauncherUpdate();
+      if (u) useStore.getState().set({ appUpdate: u });
+      else s.toastMsg(t('У вас последняя версия лаунчера.'));
+    } catch (e) {
+      s.toastMsg(String(e));
     }
   };
 
@@ -150,9 +202,11 @@ export function AppSettings() {
                   ? t('Из выбранного цвета строится вся палитра Monet: фоны, карточки, кнопки и заставки.')
                   : c.style === 'catppuccin'
                     ? t('Catppuccin использует официальную палитру Mocha или Latte — выбранный цвет на неё не влияет.')
-                    : c.style === 'amoled'
-                      ? t('AMOLED: чистый чёрный фон. Цвет применяется к кнопке «Играть», выбранным пунктам и переключателям.')
-                      : t('Цвет применяется к кнопке «Играть», выбранным пунктам и переключателям.')}
+                    : c.style === 'dracula'
+                      ? t('Dracula использует официальную палитру Dracula (тёмная) и Alucard (светлая) — выбранный цвет на неё не влияет.')
+                      : c.style === 'amoled'
+                        ? t('AMOLED: чистый чёрный фон. Цвет применяется к кнопке «Играть», выбранным пунктам и переключателям.')
+                        : t('Цвет применяется к кнопке «Играть», выбранным пунктам и переключателям.')}
               </div>
               <div className="row g8">
                 <button className="btn pr">{t('Кнопка')}</button>
@@ -246,7 +300,9 @@ export function AppSettings() {
             <select value={normLang(c.lang)} onChange={(e) => set({ lang: e.target.value })}>
               {LANGS.map((l) => (
                 <option key={l.id} value={l.id}>
-                  {l.name}
+                  {LANG_EN[l.id] && LANG_EN[l.id] !== l.name
+                    ? `${l.name} — ${LANG_EN[l.id]}`
+                    : l.name}
                 </option>
               ))}
             </select>
@@ -260,6 +316,16 @@ export function AppSettings() {
                 </div>
               ))}
             </div>
+            <div className="row g8" style={{ marginTop: 10 }}>
+              <button className="btn sm" onClick={() => void checkUpd()}>
+                {t('Проверить обновления лаунчера')}
+              </button>
+            </div>
+            {c.closeToTray && (
+              <div className="hint" style={{ marginTop: 8 }}>
+                {t('Закрытие окна не выключает лаунчер: он остаётся в трее. Выход — через меню иконки в трее.')}
+              </div>
+            )}
             <label className="l" style={{ marginTop: 18 }}>
               {t('API-ключ CurseForge')}
             </label>
@@ -304,6 +370,41 @@ export function AppSettings() {
           <div className="hint" style={{ paddingBottom: 12 }}>
             {t('Кнопка «ИИ-сборка» в «Установках»: ассистент подбирает моды, ресурс-паки и шейдеры по описанию и сам скачивает их в новый профиль.')}
           </div>
+          <div className="sw" style={{ opacity: c.aiBuilder ? 1 : 0.45 }}>
+            <span>{t('Лимит модов')}</span>
+            <input
+              type="number"
+              min={1}
+              max={200}
+              style={{ width: 140 }}
+              disabled={!c.aiBuilder}
+              placeholder={t('Без ограничения')}
+              value={c.aiPackLimit > 0 ? c.aiPackLimit : ''}
+              onChange={(e) => {
+                const n = parseInt(e.target.value, 10);
+                set({ aiPackLimit: Number.isFinite(n) && n > 0 ? Math.min(200, n) : 0 });
+              }}
+            />
+          </div>
+          <div className="sw" style={{ opacity: c.aiBuilder ? 1 : 0.45 }}>
+            <span>{t('Модель ИИ')}</span>
+            <select
+              style={{ width: 220 }}
+              disabled={!c.aiBuilder || models.length === 0}
+              value={c.aiPackModel}
+              onChange={(e) => set({ aiPackModel: e.target.value })}
+            >
+              <option value="">{t('Первая доступная')}</option>
+              {models.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="hint" style={{ paddingBottom: 12 }}>
+            {t('Лимит: сколько модов максимум подбирать — пусто значит «сколько нужно сборке». Источник и модель выбираются в окне «ИИ-сборка».')}
+          </div>
           <div className="sw">
             <span>{t('Включить изоляцию')}</span>
             <Toggle on={c.modIsolationEnabled} onClick={() => set({ modIsolationEnabled: !c.modIsolationEnabled })} />
@@ -341,6 +442,21 @@ export function AppSettings() {
             <AnimSettings />
           </>
         )}
+
+        <h2 style={{ marginTop: 24 }}>{t('Настройки лаунчера')}</h2>
+        <div className="panel" style={{ padding: 14 }}>
+          <div className="hint" style={{ marginBottom: 10 }}>
+            {t('Экспорт и импорт настроек: тема, язык, Java, изоляция и прочее. Аккаунты и профили не затрагиваются.')}
+          </div>
+          <div className="row g8" style={{ flexWrap: 'wrap' }}>
+            <button className="btn sm" onClick={() => void exportSettings()}>
+              {t('Экспортировать настройки')}
+            </button>
+            <button className="btn sm" onClick={() => void importSettings()}>
+              {t('Импортировать настройки')}
+            </button>
+          </div>
+        </div>
       </div>
     </>
   );

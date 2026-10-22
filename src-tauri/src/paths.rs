@@ -1,11 +1,75 @@
 use crate::error::{err, Res};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
-/// Корень данных: `dirs::data_dir()/Arbuz Launcher` (Windows: `%APPDATA%\Arbuz Launcher`).
+/// Имя папки данных — она лежит рядом с лаунчером или в профиле пользователя.
+const FOLDER: &str = "arbuz-launcher";
+
+/// Корень данных лаунчера.
+///
+/// Лаунчер портативный: настройки, аккаунты, профили, runtimes и instances
+/// лежат в папке `arbuz-launcher` рядом с исполняемым файлом, а не в AppData.
+///
+/// Писать рядом с собой можно не всегда. Если не выходит (например, лаунчер
+/// стоит в `Program Files`) или сам exe распакован в AppData — так делает
+/// установщик, ставя лаунчер в `%LOCALAPPDATA%\Programs`, — берём
+/// `%USERPROFILE%\arbuz-launcher`. AppData мы не трогаем в любом случае.
+/// Свой путь можно задать переменной окружения `ARBUZ_DATA_DIR`.
 pub fn root() -> PathBuf {
-    dirs::data_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join("Arbuz Launcher")
+    ROOT.get_or_init(resolve).clone()
+}
+
+static ROOT: OnceLock<PathBuf> = OnceLock::new();
+
+fn resolve() -> PathBuf {
+    if let Some(dir) = std::env::var_os("ARBUZ_DATA_DIR") {
+        if !dir.is_empty() {
+            return PathBuf::from(dir);
+        }
+    }
+    if let Some(dir) = beside_exe() {
+        if !in_appdata(&dir) && writable(&dir) {
+            return dir;
+        }
+    }
+    dirs::home_dir()
+        .map(|home| home.join(FOLDER))
+        .unwrap_or_else(|| PathBuf::from(FOLDER))
+}
+
+/// `arbuz-launcher` рядом с exe. На Linux и macOS папка приложения бывает
+/// только для чтения (или живёт до закрытия образа), поэтому — лишь Windows.
+fn beside_exe() -> Option<PathBuf> {
+    if !cfg!(windows) {
+        return None;
+    }
+    let dir = std::env::current_exe().ok()?.parent()?.to_path_buf();
+    // Лаунчер и так лежит в папке со своим именем — так ставит установщик,
+    // `%USERPROFILE%\arbuz-launcher\arbuz-launcher.exe`. Тогда данные кладём
+    // прямо туда, а не во вложенную папку с тем же названием.
+    let named = dir
+        .file_name()
+        .map(|n| n.to_string_lossy().eq_ignore_ascii_case(FOLDER))
+        .unwrap_or(false);
+    Some(if named { dir } else { dir.join(FOLDER) })
+}
+
+/// Установщик ставит лаунчер внутрь AppData — тогда «рядом с ним» и означало
+/// бы AppData, от которого мы уходим.
+fn in_appdata(dir: &Path) -> bool {
+    let s = dir.to_string_lossy().to_ascii_lowercase();
+    s.contains("\\appdata\\") || s.contains("/appdata/")
+}
+
+/// Проверяем пробным файлом: права на запись не угадать по метаданным.
+fn writable(dir: &Path) -> bool {
+    if !dir.is_dir() && std::fs::create_dir_all(dir).is_err() {
+        return false;
+    }
+    let probe = dir.join(".probe");
+    let ok = std::fs::write(&probe, b"").is_ok();
+    let _ = std::fs::remove_file(&probe);
+    ok
 }
 
 pub fn config_file() -> PathBuf {
@@ -142,6 +206,18 @@ pub fn instance_icon(id: &str, file: &str) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn appdata_paths_are_recognized() {
+        assert!(in_appdata(Path::new(
+            r"C:\Users\me\AppData\Local\Programs\arbuz-launcher"
+        )));
+        assert!(in_appdata(Path::new(
+            r"c:\users\me\appdata\roaming\arbuz-launcher"
+        )));
+        assert!(!in_appdata(Path::new(r"D:\Games\arbuz-launcher")));
+        assert!(!in_appdata(Path::new(r"C:\Users\me\arbuz-launcher")));
+    }
 
     #[test]
     fn instance_id_accepts_uuid_simple() {

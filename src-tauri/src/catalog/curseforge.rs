@@ -116,6 +116,48 @@ fn install_loader_type(kind: &str, l: Loader) -> Option<u32> {
     loader_type(l)
 }
 
+/// `modLoaderType` по slug загрузчика (`fabric`, `forge`, …).
+fn slug_loader_type(kind: &str, slug: &str) -> Option<u32> {
+    if kind != "mod" && kind != "pk" {
+        return None;
+    }
+    match slug.to_lowercase().as_str() {
+        "forge" => Some(1),
+        "fabric" => Some(4),
+        "quilt" => Some(5),
+        "neoforge" => Some(6),
+        _ => None,
+    }
+}
+
+/// Есть ли у проекта файл под версию игры и загрузчик профиля.
+pub async fn has_file(
+    state: &AppState,
+    project_id: &str,
+    kind: &str,
+    loader: &str,
+    mc: &str,
+) -> Res<bool> {
+    let (api, key) = endpoint(state).await;
+    let mut url = format!("{api}/mods/{project_id}/files?pageSize=1");
+    if !super::any_version(kind) && !mc.is_empty() {
+        url.push_str(&format!("&gameVersion={}", urlencoding::encode(mc)));
+    }
+    if let Some(t) = slug_loader_type(kind, loader) {
+        url.push_str(&format!("&modLoaderType={t}"));
+    }
+    let v: Value = get(state, &url, &key)
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
+    Ok(v.get("data")
+        .and_then(|x| x.as_array())
+        .map(|a| !a.is_empty())
+        .unwrap_or(false))
+}
+
 fn str_list(v: &Value, key: &str, sub: &str) -> Vec<String> {
     v.get(key)
         .and_then(|x| x.as_array())
@@ -161,7 +203,7 @@ pub async fn search(state: &AppState, a: &SearchArgs) -> Res<SearchResult> {
         a.offset
     );
     if let Some(v) = &a.mc_version {
-        if !v.is_empty() {
+        if !v.is_empty() && !super::any_version(&a.kind) {
             url.push_str(&format!("&gameVersion={}", urlencoding::encode(v)));
         }
     }
@@ -225,7 +267,8 @@ pub async fn install(
 ) -> Res<()> {
     let (api, key) = endpoint(state).await;
     let mut url = format!("{api}/mods/{project_id}/files?pageSize=1");
-    if !inst.mc_version.is_empty() {
+    // Текстуры и шейдеры не привязаны к версии игры — берём свежий файл.
+    if !inst.mc_version.is_empty() && !super::any_version(kind) {
         url.push_str(&format!("&gameVersion={}", urlencoding::encode(&inst.mc_version)));
     }
     if let Some(t) = install_loader_type(kind, inst.loader) {
@@ -246,7 +289,10 @@ pub async fn install(
     // Проверяем совместимость файла с профилем: API мог отдать файл другого
     // загрузчика или другой версии игры, если фильтр не сработал.
     let games = str_arr(f, "gameVersions");
-    if !inst.mc_version.is_empty() && !games.iter().any(|g| g == &inst.mc_version) {
+    if !super::any_version(kind)
+        && !inst.mc_version.is_empty()
+        && !games.iter().any(|g| g == &inst.mc_version)
+    {
         return err(format!(
             "У проекта нет файла для Minecraft {}",
             inst.mc_version

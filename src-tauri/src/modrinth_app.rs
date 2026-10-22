@@ -138,10 +138,13 @@ pub async fn import(path: &str) -> Res<Instance> {
         playtime_days: std::collections::BTreeMap::new(),
         last_played: None,
         created: chrono::Utc::now().timestamp(),
+        pack: None,
+        game_dir: None,
     };
 
     let dst = paths::instance_minecraft_dir(&id);
     tokio::fs::create_dir_all(&dst).await?;
+    tokio::fs::create_dir_all(paths::instance_dir(&id)).await?;
     for sub in ["mods", "config", "saves", "resourcepacks", "shaderpacks", "logs"] {
         tokio::fs::create_dir_all(dst.join(sub)).await?;
     }

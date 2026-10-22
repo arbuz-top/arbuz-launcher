@@ -151,6 +151,7 @@ pub async fn launch(
     state: &AppState,
     id: String,
     world: Option<String>,
+    server: Option<String>,
 ) -> Res<()> {
     // A. Профиль и активный аккаунт.
     let inst = store::read_instance(&id).await?;
@@ -170,7 +171,7 @@ pub async fn launch(
         running.insert(id.clone(), kill_tx);
     }
 
-    let result = run(&app, state, &id, &inst, &acc, world, &mut kill_rx).await;
+    let result = run(&app, state, &id, &inst, &acc, world, server, &mut kill_rx).await;
     state.running.lock().await.remove(&id);
 
     match result {
@@ -206,6 +207,7 @@ async fn run(
     inst: &Instance,
     acc: &Account,
     world: Option<String>,
+    server: Option<String>,
     kill_rx: &mut tokio::sync::oneshot::Receiver<()>,
 ) -> Res<Outcome> {
     // E. Начало.
@@ -553,6 +555,25 @@ async fn run(
             args.push(w.clone());
         }
     }
+    // 8b. Запуск прямо на сервер.
+    if let Some(s) = &server {
+        let s = s.trim();
+        if !s.is_empty() {
+            if mc_at_least(&inst.mc_version, 1, 20) {
+                args.push("--quickPlayMultiplayer".to_string());
+                args.push(s.to_string());
+            } else {
+                let (host, port) = match s.rsplit_once(':') {
+                    Some((h, p)) if p.parse::<u16>().is_ok() => (h, p),
+                    _ => (s, "25565"),
+                };
+                args.push("--server".to_string());
+                args.push(host.to_string());
+                args.push("--port".to_string());
+                args.push(port.to_string());
+            }
+        }
+    }
 
     #[cfg(windows)]
     let guard = {
@@ -564,7 +585,7 @@ async fn run(
         crate::sandbox::level_of(on, &lvl, has_isolated)
     };
     #[cfg(not(windows))]
-    let guard = "off";
+    let _guard = "off";
 
     // Песочница: TEMP всегда внутри профиля, чтобы JVM и нативы не лезли
     // в medium-%TEMP%. На strict ещё и HOME/APPDATA/LOCALAPPDATA → container,

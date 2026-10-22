@@ -462,7 +462,7 @@ export function Catalog() {
 
         <div className="row" style={{ alignItems: 'flex-start', gap: 18 }}>
           <div className="panel fl">
-            {bt !== 'sh' && (
+            {bt !== 'sh' && bt !== 'rp' && bt !== 'dp' && (
               <>
                 <h3>{t('Загрузчик')}</h3>
                 {LOADERS.map((l) => (
@@ -470,15 +470,19 @@ export function Catalog() {
                 ))}
               </>
             )}
-            <h3>{t('Версия игры')}</h3>
-            <select value={bv} onChange={(e) => useStore.getState().set({ bv: e.target.value })}>
-              <option value="">{t('Любая')}</option>
-              {releases.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.id}
-                </option>
-              ))}
-            </select>
+            {bt !== 'rp' && bt !== 'sh' && (
+              <>
+                <h3>{t('Версия игры')}</h3>
+                <select value={bv} onChange={(e) => useStore.getState().set({ bv: e.target.value })}>
+                  <option value="">{t('Любая')}</option>
+                  {releases.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.id}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
             <h3>{t('Сортировка')}</h3>
             <select value={bs} onChange={(e) => useStore.getState().set({ bs: e.target.value })}>
               {SORTS.map(([k, l]) => (

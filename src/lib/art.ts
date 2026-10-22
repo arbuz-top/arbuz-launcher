@@ -2,7 +2,7 @@
 import { createElement, type ReactElement } from 'react';
 import { pal, hue, shade, mix } from './color';
 import { builtinIcon } from './builtin';
-import { catTokens, type CustomTheme, type Style } from './theme';
+import { catTokens, draculaTokens, type CustomTheme, type Style } from './theme';
 
 export type ArtTheme = { style: Style; dark: boolean; accent: string; custom?: CustomTheme };
 
@@ -56,6 +56,11 @@ export function icCols(bm: string, k: number, t: ArtTheme): [string, string, str
     const pick = [c.mauve, c.blue, c.pink, c.teal, c.green][k % 5];
     return [pick, shade(pick, 0.78), shade(pick, 0.6)];
   }
+  if (t.style === 'dracula') {
+    const c = draculaTokens(t.dark);
+    const pick = [c.purple, c.pink, c.cyan, c.green, c.yellow][k % 5];
+    return [pick, shade(pick, 0.78), shade(pick, 0.6)];
+  }
   const Q = pal(hue(t.accent) + (k % 5) * 28);
   return t.dark ? [Q.p(80), Q.p(60), Q.p(45)] : [Q.p(70), Q.p(55), Q.p(40)];
 }
@@ -81,6 +86,12 @@ export function artCols(bm: string, k: number, t: ArtTheme): BioColors {
     return t.dark
       ? { s1: c.base, s2: c.surface0, sun: c.yellow, cl: c.surface2, far: c.surface0, mid: c.surface1, near: c.surface2, leaf: c.green, trunk: c.overlay1 }
       : { s1: c.crust, s2: c.surface0, sun: c.yellow, cl: c.base, far: c.surface0, mid: c.surface1, near: c.surface2, leaf: c.green, trunk: c.overlay1 };
+  }
+  if (t.style === 'dracula') {
+    const c = draculaTokens(t.dark);
+    return t.dark
+      ? { s1: c.background, s2: c.currentLine, sun: c.yellow, cl: '#565970', far: c.currentLine, mid: '#565970', near: c.comment, leaf: c.green, trunk: c.comment }
+      : { s1: '#f7f2e0', s2: '#ece7d5', sun: c.yellow, cl: '#ffffff', far: '#ece7d5', mid: '#dedac8', near: '#cfcfde', leaf: c.green, trunk: c.comment };
   }
   const Q = pal(hue(t.accent) + (k % 5) * 28);
   return t.dark

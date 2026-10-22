@@ -52,6 +52,8 @@ const OPTIONS: Opt[] = [
   { style: 'monet', dark: false, name: 'Monet', sub: 'Светлая' },
   { style: 'catppuccin', dark: true, name: 'Catppuccin', sub: 'Mocha' },
   { style: 'catppuccin', dark: false, name: 'Catppuccin', sub: 'Latte' },
+  { style: 'dracula', dark: true, name: 'Dracula', sub: 'Тёмная' },
+  { style: 'dracula', dark: false, name: 'Dracula', sub: 'Alucard' },
   { style: 'flat', dark: true, name: 'Плоский', sub: 'Тёмная' },
   { style: 'flat', dark: false, name: 'Плоский', sub: 'Светлая' },
   { style: 'amoled', dark: true, name: 'AMOLED', sub: 'Чёрная' },
@@ -61,7 +63,7 @@ const OPTIONS: Opt[] = [
 function Card({ style, dark, accent, custom, name, sub, selected, index, onPick }: T & { name: string; sub: string; selected: boolean; index: number; onPick: () => void }) {
   const r = getRoles(style, dark, accent, custom);
   const dots = style === 'monet' ? [r.pri, r.sec, r.ter, r.pric]
-    : style === 'catppuccin' ? [r.pri, r.ter, r.s3, r.pric]
+    : style === 'catppuccin' || style === 'dracula' ? [r.pri, r.ter, r.s3, r.pric]
       : style === 'custom' ? [r.pri, r.ter, r.s3, r.sbg]
         : [r.pri, r.s3];
   return (

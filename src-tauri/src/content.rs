@@ -422,7 +422,7 @@ fn scan(game: &Path, meta: &ContentMeta) -> Res<Vec<ContentItem>> {
     Ok(out)
 }
 
-async fn read_content_meta(id: &str) -> ContentMeta {
+pub(crate) async fn read_content_meta(id: &str) -> ContentMeta {
     store::read_json::<ContentMeta>(&paths::instance_content_json(id))
         .await
         .unwrap_or_default()

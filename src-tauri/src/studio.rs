@@ -142,6 +142,8 @@ struct ModMeta {
     /// Путь от `minecraft/`: `mods/foo.jar`.
     file: String,
     enabled: bool,
+    /// Версия из метаданных (пусто, если её нет или это заглушка сборки).
+    version: String,
     /// id зависимостей.
     depends: Vec<String>,
     /// id, которые мод предоставляет (модули Fabric API и т.п.).
@@ -395,6 +397,16 @@ fn clean_id(stem: &str) -> String {
     out.trim_matches('-').to_string()
 }
 
+/// Версия из метаданных: заглушки вида `${version}` из Gradle ничего не значат.
+fn clean_ver(v: &str) -> String {
+    let v = v.trim();
+    if v.is_empty() || v.contains("${") {
+        String::new()
+    } else {
+        v.chars().take(40).collect()
+    }
+}
+
 fn read_mod_meta(path: &Path, rel: &str, enabled: bool) -> ModMeta {
     let stem = path
         .file_stem()
@@ -405,6 +417,7 @@ fn read_mod_meta(path: &Path, rel: &str, enabled: bool) -> ModMeta {
         name: stem.clone(),
         file: rel.to_string(),
         enabled,
+        version: String::new(),
         depends: Vec::new(),
         provides: Vec::new(),
     };
@@ -429,6 +442,9 @@ fn read_mod_meta(path: &Path, rel: &str, enabled: bool) -> ModMeta {
             if let Some(d) = v["depends"].as_object() {
                 m.depends = d.keys().cloned().collect();
             }
+            if let Some(ver) = v["version"].as_str() {
+                m.version = clean_ver(ver);
+            }
             if let Some(p) = v["provides"].as_array() {
                 m.provides = p
                     .iter()
@@ -450,6 +466,9 @@ fn read_mod_meta(path: &Path, rel: &str, enabled: bool) -> ModMeta {
                 if !n.trim().is_empty() {
                     m.name = n.to_string();
                 }
+            }
+            if let Some(ver) = q["version"].as_str() {
+                m.version = clean_ver(ver);
             }
             if let Some(arr) = q["depends"].as_array() {
                 for d in arr {
@@ -496,6 +515,9 @@ fn read_mod_meta(path: &Path, rel: &str, enabled: bool) -> ModMeta {
                 if !n.trim().is_empty() {
                     m.name = n.to_string();
                 }
+            }
+            if let Some(ver) = mm.get("version").and_then(|x| x.as_str()) {
+                m.version = clean_ver(ver);
             }
         }
         if let Some(deps) = t.get("dependencies").and_then(|x| x.as_table()) {
@@ -786,18 +808,43 @@ pub async fn validate(id: &str) -> Res<Vec<PackIssue>> {
     let mods = scan_mods(&inst);
     let mut out: Vec<PackIssue> = Vec::new();
 
-    // Дубликаты: два jar-файла с одним mod id.
+    // Дубликаты: несколько jar с одним mod id — это либо один и тот же мод
+    // дважды, либо две версии одной библиотеки (игра возьмёт случайную).
     let mut by_id: HashMap<String, Vec<&ModMeta>> = HashMap::new();
     for m in &mods {
         by_id.entry(m.id.to_ascii_lowercase()).or_default().push(m);
     }
-    for (mid, list) in by_id.iter() {
-        if list.len() > 1 {
-            let files = list
-                .iter()
-                .map(|m| m.file.clone())
-                .collect::<Vec<_>>()
-                .join(", ");
+    let mut dupes: Vec<(&String, &Vec<&ModMeta>)> =
+        by_id.iter().filter(|(_, l)| l.len() > 1).collect();
+    dupes.sort_by(|a, b| a.0.cmp(b.0));
+    for (mid, list) in dupes {
+        let files = list
+            .iter()
+            .map(|m| m.file.clone())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let mut versions: Vec<String> = list
+            .iter()
+            .map(|m| {
+                if m.version.is_empty() {
+                    "версия неизвестна".to_string()
+                } else {
+                    m.version.clone()
+                }
+            })
+            .collect();
+        versions.sort();
+        versions.dedup();
+        if versions.len() > 1 || (!versions.is_empty() && versions[0] != "версия неизвестна") {
+            out.push(PackIssue {
+                severity: "error".into(),
+                title: format!("Разные версии «{mid}»"),
+                detail: format!(
+                    "Файлы: {files}. Версии: {}. Оставьте одну — иначе загрузчик возьмёт случайную.",
+                    versions.join(", ")
+                ),
+            });
+        } else {
             out.push(PackIssue {
                 severity: "error".into(),
                 title: format!("Дубликат мода «{mid}»"),
@@ -893,8 +940,46 @@ pub async fn validate(id: &str) -> Res<Vec<PackIssue>> {
         });
     }
 
+    // Память: мало — лаги и вылеты, много — система уходит в своп, а Java
+    // начинает тратить время на сборку мусора.
+    let total = system_ram_mb();
+    let max = inst.ram_max_mb as u64;
+    let mods_n = enabled.len() as u64;
+    let need_mb = (2048 + mods_n * 40).min(12 * 1024);
+    if total > 0 && max + 1024 > total {
+        out.push(PackIssue {
+            severity: "error".into(),
+            title: format!("ОЗУ больше, чем в системе: {} МБ", max),
+            detail: format!(
+                "В системе {total} МБ. Оставьте системе хотя бы 1 ГБ, иначе игра вылетит с OutOfMemoryError."
+            ),
+        });
+    } else if max < need_mb {
+        out.push(PackIssue {
+            severity: if mods_n >= 40 || max < 2048 { "error" } else { "warn" }.into(),
+            title: format!("Мало ОЗУ: выделено {} МБ", max),
+            detail: format!(
+                "В сборке {mods_n} модов, для них разумно {need_mb}–{} МБ. Поднимите лимит в настройках профиля.",
+                (need_mb * 2).min(12 * 1024)
+            ),
+        });
+    } else if mods_n > 0 && max > 16 * 1024 {
+        out.push(PackIssue {
+            severity: "info".into(),
+            title: format!("Выделено много ОЗУ: {} ГБ", max / 1024),
+            detail: "Java редко выигрывает от большого лимита: паузы на сборку мусора растут, а FPS — нет. Обычно хватает 4–8 ГБ.".into(),
+        });
+    }
+
     out.truncate(300);
     Ok(out)
+}
+
+/// Сколько оперативной памяти в системе, МБ.
+fn system_ram_mb() -> u64 {
+    let mut sys = sysinfo::System::new();
+    sys.refresh_memory();
+    sys.total_memory() / 1024 / 1024
 }
 
 // ---------------------------------------------------------------------------
@@ -938,10 +1023,41 @@ fn collect_files(game: &Path) -> Vec<(String, PathBuf)> {
     out
 }
 
+/// Файл, который можно описать ссылкой на каталог, а не класть в архив целиком.
+fn remote_entry(rel: &str, e: &crate::content::Entry) -> Option<(String, String)> {
+    if e.project_id.is_empty() || e.version_id.is_empty() {
+        return None;
+    }
+    let name = rel.rsplit('/').next().unwrap_or(rel);
+    if name.is_empty() {
+        return None;
+    }
+    let url = match e.source.as_str() {
+        "modrinth" => format!(
+            "https://cdn.modrinth.com/data/{}/versions/{}/{}",
+            e.project_id, e.version_id, name
+        ),
+        "curseforge" => {
+            let id: i64 = e.version_id.parse().ok()?;
+            crate::catalog::curseforge::forgecdn_url(id, name)
+        }
+        _ => return None,
+    };
+    Some((url, e.sha1.clone()))
+}
+
+/// Моды, ресурспаки и шейдеры модпаки описывают ссылками; конфиги кладут внутрь.
+fn declarable(rel: &str) -> bool {
+    ["mods/", "resourcepacks/", "shaderpacks/"]
+        .iter()
+        .any(|p| rel.starts_with(p))
+}
+
 fn write_pack(
     inst: &Instance,
     manifest: &PackManifest,
     loader_ver: Option<String>,
+    meta: crate::content::ContentMeta,
     dest: &Path,
     fmt: &str,
 ) -> Res<ExportResult> {
@@ -949,6 +1065,58 @@ fn write_pack(
     let files = collect_files(&game);
     if files.is_empty() {
         return err("В папке сборки нет файлов для экспорта");
+    }
+    let mr = fmt == "mrpack";
+    let mmc = fmt == "mmc";
+
+    // Что поставили через каталог — запишем ссылкой, остальное положим в архив.
+    let mut remote: Vec<Value> = Vec::new();
+    let mut local: Vec<(String, PathBuf)> = Vec::new();
+    for (rel, path) in files {
+        // MultiMC/Prism не умеет ссылки на каталоги — кладём все файлы в архив.
+        if mmc {
+            local.push((rel, path));
+            continue;
+        }
+        let entry = meta.files.get(&rel);
+        let link = if declarable(&rel) {
+            entry.and_then(|e| remote_entry(&rel, e))
+        } else {
+            None
+        };
+        let Some((url, sha1)) = link else {
+            local.push((rel, path));
+            continue;
+        };
+        if !mr {
+            // CurseForge-манифест ссылается на файлы только парой projectID/fileID.
+            let ids = entry.and_then(|e| {
+                Some((e.project_id.parse::<i64>().ok()?, e.version_id.parse::<i64>().ok()?))
+            });
+            match ids {
+                Some((pid, fid)) => remote
+                    .push(json!({ "projectID": pid, "fileID": fid, "required": true })),
+                None => local.push((rel, path)),
+            }
+            continue;
+        }
+        let size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+        let mut hashes = serde_json::Map::new();
+        if !sha1.is_empty() {
+            hashes.insert("sha1".into(), json!(sha1));
+        }
+        let env = if rel.starts_with("mods/") {
+            json!({ "client": "required", "server": "required" })
+        } else {
+            json!({ "client": "required", "server": "unsupported" })
+        };
+        remote.push(json!({
+            "path": rel,
+            "hashes": Value::Object(hashes),
+            "downloads": [url],
+            "fileSize": size,
+            "env": env,
+        }));
     }
 
     let name = dest
@@ -966,7 +1134,7 @@ fn write_pack(
     let mut bytes = 0u64;
     let mut count = 0usize;
 
-    if fmt == "mrpack" {
+    if mr {
         let mut deps = serde_json::Map::new();
         deps.insert("minecraft".into(), json!(inst.mc_version));
         if let Some(v) = &loader_ver {
@@ -999,7 +1167,7 @@ fn write_pack(
             "versionId": manifest.version,
             "name": manifest.name,
             "summary": summary,
-            "files": [],
+            "files": remote,
             "dependencies": deps,
         });
         let data = serde_json::to_vec_pretty(&index)?;
@@ -1007,7 +1175,75 @@ fn write_pack(
         zw.write_all(&data)?;
         bytes += data.len() as u64;
         count += 1;
+    } else if mmc {
+        // MultiMC / Prism: instance.cfg + mmc-pack.json + файлы в .minecraft/
+        let mut comps = vec![json!({
+            "uid": "net.minecraft",
+            "version": inst.mc_version,
+            "important": true,
+        })];
+        if let Some(v) = &loader_ver {
+            let uid = match inst.loader {
+                Loader::Fabric => Some("net.fabricmc.fabric-loader"),
+                Loader::Quilt => Some("org.quiltmc.quilt-loader"),
+                Loader::Forge => Some("net.minecraftforge"),
+                Loader::Neoforge => Some("net.neoforged"),
+                Loader::Vanilla => None,
+            };
+            if let Some(uid) = uid {
+                let prefix = format!("{}-", inst.mc_version);
+                let ver = if matches!(inst.loader, Loader::Forge) {
+                    v.strip_prefix(&prefix).unwrap_or(v)
+                } else {
+                    v.as_str()
+                };
+                comps.push(json!({ "uid": uid, "version": ver }));
+            }
+        }
+        let pack = json!({ "formatVersion": 1, "components": comps });
+        let data = serde_json::to_vec_pretty(&pack)?;
+        zw.start_file("mmc-pack.json", deflated)?;
+        zw.write_all(&data)?;
+        bytes += data.len() as u64;
+        count += 1;
+
+        let cfg = format!(
+            "InstanceType=OneSix\nname={}\n",
+            manifest.name.replace('\r', " ").replace('\n', " ")
+        );
+        zw.start_file("instance.cfg", deflated)?;
+        zw.write_all(cfg.as_bytes())?;
+        bytes += cfg.len() as u64;
+        count += 1;
+
+        // Наш манифест: описание и иконку MultiMC-формат не хранит.
+        let data = serde_json::to_vec_pretty(manifest)?;
+        zw.start_file("pack.json", deflated)?;
+        zw.write_all(&data)?;
+        bytes += data.len() as u64;
+        count += 1;
     } else {
+        let mc = json!({
+            "version": inst.mc_version,
+            "modLoaders": loader_id(inst, loader_ver.as_deref()),
+        });
+        let cf = json!({
+            "minecraft": mc,
+            "manifestType": "minecraftModpack",
+            "manifestVersion": 1,
+            "name": manifest.name,
+            "version": manifest.version,
+            "author": manifest.author,
+            "files": remote,
+            "overrides": "overrides",
+        });
+        let data = serde_json::to_vec_pretty(&cf)?;
+        zw.start_file("manifest.json", deflated)?;
+        zw.write_all(&data)?;
+        bytes += data.len() as u64;
+        count += 1;
+
+        // Свой манифест рядом: описание и иконку форматы модпаков не хранят.
         let data = serde_json::to_vec_pretty(manifest)?;
         zw.start_file("pack.json", deflated)?;
         zw.write_all(&data)?;
@@ -1015,11 +1251,11 @@ fn write_pack(
         count += 1;
     }
 
-    for (rel, path) in &files {
-        let zname = if fmt == "mrpack" {
-            format!("overrides/{rel}")
+    for (rel, path) in &local {
+        let zname = if mmc {
+            format!(".minecraft/{rel}")
         } else {
-            rel.clone()
+            format!("overrides/{rel}")
         };
         let opts = if rel.ends_with(".jar") || rel.ends_with(".zip") {
             stored
@@ -1045,13 +1281,33 @@ fn write_pack(
     })
 }
 
-/// Экспорт сборки: `format` = `mrpack` | `zip`.
+/// Список загрузчиков для CurseForge-манифеста: `fabric-0.15.11`, `forge-47.2.0`.
+fn loader_id(inst: &Instance, ver: Option<&str>) -> Value {
+    let Some(v) = ver.map(str::trim).filter(|v| !v.is_empty()) else {
+        return json!([]);
+    };
+    let id = match inst.loader {
+        Loader::Fabric => format!("fabric-{v}"),
+        Loader::Quilt => format!("quilt-{v}"),
+        Loader::Neoforge => format!("neoforge-{v}"),
+        // У Forge версия в профиле хранится как `<mc>-<версия>`.
+        Loader::Forge => {
+            let prefix = format!("{}-", inst.mc_version);
+            format!("forge-{}", v.strip_prefix(&prefix).unwrap_or(v))
+        }
+        Loader::Vanilla => return json!([]),
+    };
+    json!([{ "id": id, "primary": true }])
+}
+
+/// Экспорт сборки: `format` = `mrpack` | `zip` (CurseForge) | `mmc` (MultiMC/Prism).
 pub async fn export(id: &str, dest: &str, format: &str) -> Res<ExportResult> {
     let inst = load(id).await?;
     let fmt = format.to_ascii_lowercase();
-    if fmt != "mrpack" && fmt != "zip" {
+    if fmt != "mrpack" && fmt != "zip" && fmt != "mmc" {
         return err("Неизвестный формат экспорта");
     }
+    let ext = if fmt == "mmc" { "zip" } else { fmt.as_str() };
     let raw = dest.trim();
     if raw.is_empty() {
         return err("Не указан путь для сохранения");
@@ -1063,10 +1319,10 @@ pub async fn export(id: &str, dest: &str, format: &str) -> Res<ExportResult> {
     let ext_ok = path
         .extension()
         .and_then(|e| e.to_str())
-        .map(|e| e.eq_ignore_ascii_case(&fmt))
+        .map(|e| e.eq_ignore_ascii_case(ext))
         .unwrap_or(false);
     if !ext_ok {
-        path.set_extension(&fmt);
+        path.set_extension(ext);
     }
     if let Some(parent) = path.parent() {
         if !parent.is_dir() {
@@ -1076,8 +1332,9 @@ pub async fn export(id: &str, dest: &str, format: &str) -> Res<ExportResult> {
 
     let manifest = read_manifest(&inst).await;
     let loader_ver = detect_loader_version(&inst);
+    let meta = crate::content::read_content_meta(&inst.id).await;
     tokio::task::spawn_blocking(move || {
-        write_pack(&inst, &manifest, loader_ver, &path, &fmt)
+        write_pack(&inst, &manifest, loader_ver, meta, &path, &fmt)
     })
     .await?
 }
@@ -1096,6 +1353,7 @@ mod tests {
             name: name.into(),
             file: format!("mods/{id}.jar"),
             enabled: true,
+            version: String::new(),
             depends: Vec::new(),
             provides: Vec::new(),
         }
@@ -1105,6 +1363,12 @@ mod tests {
     fn clean_id_is_stable() {
         assert_eq!(clean_id("Sodium Fabric 0.5.8"), "sodium-fabric-0-5-8");
         assert_eq!(clean_id("create_1.20.1"), "create_1-20-1");
+    }
+
+    #[test]
+    fn placeholder_version_is_dropped() {
+        assert_eq!(clean_ver("${version}"), "");
+        assert_eq!(clean_ver(" 1.2.3 "), "1.2.3");
     }
 
     #[test]

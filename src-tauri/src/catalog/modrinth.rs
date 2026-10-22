@@ -40,7 +40,9 @@ fn slug(cat: &str) -> String {
 
 pub async fn search(c: &reqwest::Client, a: &SearchArgs) -> Res<SearchResult> {
     let mut facets: Vec<Vec<String>> = vec![vec![format!("project_type:{}", project_type(&a.kind))]];
-    if !a.loaders.is_empty() {
+    // Загрузчик имеет смысл только для модов и сборок: у текстур-паков,
+    // шейдеров и датапаков его нет — иначе поиск вернёт пустоту.
+    if !a.loaders.is_empty() && matches!(a.kind.as_str(), "mod" | "pk") {
         facets.push(
             a.loaders
                 .iter()
@@ -49,7 +51,7 @@ pub async fn search(c: &reqwest::Client, a: &SearchArgs) -> Res<SearchResult> {
         );
     }
     if let Some(v) = &a.mc_version {
-        if !v.is_empty() {
+        if !v.is_empty() && !super::any_version(&a.kind) {
             facets.push(vec![format!("versions:{v}")]);
         }
     }
@@ -110,10 +112,13 @@ async fn versions(c: &reqwest::Client, project_id: &str, kind: &str, inst: &Inst
             ));
         }
     }
-    q.push(format!(
-        "game_versions={}",
-        urlencoding::encode(&serde_json::to_string(&[inst.mc_version.clone()])?)
-    ));
+    // Ресурс-паки и шейдеры от версии игры не зависят — фильтр не ставим.
+    if !super::any_version(kind) {
+        q.push(format!(
+            "game_versions={}",
+            urlencoding::encode(&serde_json::to_string(&[inst.mc_version.clone()])?)
+        ));
+    }
     let url = format!("{API}/project/{project_id}/version?{}", q.join("&"));
 
     let v: Value = c.get(&url).send().await?.error_for_status()?.json().await?;
@@ -122,6 +127,10 @@ async fn versions(c: &reqwest::Client, project_id: &str, kind: &str, inst: &Inst
 
 /// Совместима ли версия с профилем: та же версия игры и тот же загрузчик.
 fn compatible(v: &Value, kind: &str, inst: &Instance) -> bool {
+    // Текстуры и шейдеры подходят к любой версии игры.
+    if super::any_version(kind) {
+        return true;
+    }
     let games = str_arr(v, "game_versions");
     if !games.iter().any(|g| g == &inst.mc_version) {
         return false;
@@ -145,6 +154,38 @@ fn pick_version<'a>(list: &'a [Value], kind: &str, inst: &Instance) -> Option<&'
         .find(|v| str_of(v, "version_type") == "release")
         .or_else(|| ok.first())
         .copied()
+}
+
+/// Есть ли у проекта файл под версию игры и загрузчик профиля.
+pub async fn has_file(
+    c: &reqwest::Client,
+    project_id: &str,
+    kind: &str,
+    loader: &str,
+    mc: &str,
+) -> Res<bool> {
+    let mut q: Vec<String> = Vec::new();
+    if (kind == "mod" || kind == "pk") && !loader.is_empty() {
+        q.push(format!(
+            "loaders={}",
+            urlencoding::encode(&serde_json::to_string(&[loader])?)
+        ));
+    }
+    if !super::any_version(kind) && !mc.is_empty() {
+        q.push(format!(
+            "game_versions={}",
+            urlencoding::encode(&serde_json::to_string(&[mc])?)
+        ));
+    }
+    let url = format!("{API}/project/{project_id}/version?{}", q.join("&"));
+    let v: Value = c.get(&url).send().await?.error_for_status()?.json().await?;
+    let list = v.as_array().cloned().unwrap_or_default();
+    Ok(list.iter().any(|v| {
+        v.get("files")
+            .and_then(|f| f.as_array())
+            .map(|a| !a.is_empty())
+            .unwrap_or(false)
+    }))
 }
 
 /// Основной файл версии: с `primary == true`, иначе первый.

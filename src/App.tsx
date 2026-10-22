@@ -7,11 +7,13 @@ import { AppSettings } from './components/AppSettings';
 import { BottomBar } from './components/BottomBar';
 import { Catalog } from './components/Catalog';
 import { ConsoleModal } from './components/ConsoleModal';
+import { CoopTab } from './components/CoopTab';
 import { ConfirmModal } from './components/ConfirmModal';
 import { CrashModal } from './components/CrashModal';
 import { Home } from './components/Home';
 import { Installations } from './components/Installations';
 import { LayoutEdit } from './components/LayoutEdit';
+import { LauncherUpdateModal } from './components/LauncherUpdateModal';
 import { Onboarding } from './components/Onboarding';
 import { ProfileView } from './components/ProfileView';
 import { Sidebar } from './components/Sidebar';
@@ -34,6 +36,25 @@ export default function App() {
   const anim = useStore((s) => s.config.anim);
   const move = useStore((s) => s.move);
   const reduce = useReducedMotion();
+  const checkAppUpd = useStore((s) => s.config.checkLauncherUpdates);
+
+  // Обновления лаунчера: один раз за запуск, если включено в настройках.
+  useEffect(() => {
+    if (!onboarded || !checkAppUpd) return;
+    let alive = true;
+    const timer = window.setTimeout(() => {
+      api
+        .checkLauncherUpdate()
+        .then((u) => {
+          if (alive && u) useStore.getState().set({ appUpdate: u });
+        })
+        .catch(() => {});
+    }, 2500);
+    return () => {
+      alive = false;
+      window.clearTimeout(timer);
+    };
+  }, [onboarded, checkAppUpd]);
 
   // До первого кадра — только get_config и list_instances. Ошибка одного
   // запроса не должна мешать другому: конфиг грузится независимо от списка.
@@ -194,7 +215,7 @@ export default function App() {
       st.set(patch);
       if (st.config.closeOnLaunch) {
         void getCurrentWindow()
-          .minimize()
+          .hide()
           .catch((e) => useStore.getState().toastMsg(String(e)));
       }
     }).then((u) => un.push(u));
@@ -210,7 +231,7 @@ export default function App() {
       st.set(patch);
       if (st.config.closeOnLaunch) {
         void getCurrentWindow()
-          .unminimize()
+          .show()
           .then(() => getCurrentWindow().setFocus())
           .catch((e) => useStore.getState().toastMsg(String(e)));
       }
@@ -234,6 +255,8 @@ export default function App() {
                 <Home />
               ) : view === 'installs' ? (
                 <Installations />
+              ) : view === 'coop' ? (
+                <CoopTab />
               ) : view === 'accounts' ? (
                 <Accounts />
               ) : view === 'p' ? (
@@ -254,6 +277,7 @@ export default function App() {
       <AddAccountModal />
       <ConfirmModal />
       <CrashModal />
+      <LauncherUpdateModal />
       {onboarded && <ConsoleModal />}
       {onboarded && <AccountMenu />}
       {onboarded && <LayoutEdit />}

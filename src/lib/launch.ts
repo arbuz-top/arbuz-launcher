@@ -23,7 +23,11 @@ export function stat(p: number): string {
 }
 
 /** Запускает профиль или останавливает его, если он уже работает. */
-export async function playInstance(id: string, world: string | null = null): Promise<void> {
+export async function playInstance(
+  id: string,
+  world: string | null = null,
+  server: string | null = null,
+): Promise<void> {
   const st = useStore.getState();
   if (isRunning(st, id)) {
     try {
@@ -35,7 +39,7 @@ export async function playInstance(id: string, world: string | null = null): Pro
   }
   useStore.getState().set({ running: { ...st.running, [id]: 0 } });
   try {
-    await api.launchInstance(id, world);
+    await api.launchInstance(id, world, server);
   } catch (e) {
     const s2 = useStore.getState();
     const running = { ...s2.running };

@@ -48,7 +48,7 @@ h2{font-size:15px;font-weight:600;margin:24px 0 10px}h2:first-child{margin-top:0
 .btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 [data-v=b] .btn{height:40px;padding:0 24px;font-size:14px;background:var(--sec);color:var(--onsec)}
 [data-v=b] .btn.pr{background:var(--pri);color:var(--onpri)}[data-v=b] .btn.sm{height:32px;padding:0 16px;font-size:13px}
-input[type=text],input[type=password],select,textarea{background:var(--s2);color:var(--on);border:2px solid transparent;border-radius:var(--r);padding:8px 12px;font:inherit;width:100%;outline:0;user-select:text}
+input[type=text],input[type=password],input[type=number],select,textarea{background:var(--s2);color:var(--on);border:2px solid transparent;border-radius:var(--r);padding:8px 12px;font:inherit;width:100%;outline:0;user-select:text}
 input:focus,select:focus,textarea:focus{border-color:var(--pri)}
 [data-v=b] input[type=text],[data-v=b] input[type=password],[data-v=b] select,[data-v=b] textarea{background:transparent;border:1px solid var(--outl);border-radius:6px;padding:10px 14px}
 [data-v=b] input:focus,[data-v=b] select:focus,[data-v=b] textarea:focus{border:2px solid var(--pri);padding:9px 13px}
@@ -291,7 +291,7 @@ tbody tr{animation:a-fade var(--d-list) var(--anim-ease) backwards;animation-del
 }
 
 /* === Своя тема: размеры текста, кнопок и отступов === */
-#win[data-custom]{font-family:var(--font,arbuz-font,Inter,system-ui,sans-serif)}
+#win[data-custom]{font-family:var(--font,Inter,system-ui,sans-serif)}
 #win[data-custom][data-v=b]{font-family:var(--font,Roboto,system-ui,sans-serif)}
 #win[data-custom]{font-size:calc(13px * var(--fs,1))}
 #win[data-custom] .ttl{font-size:calc(26px * var(--fs,1))}

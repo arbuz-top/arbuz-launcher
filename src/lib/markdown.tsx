@@ -144,8 +144,97 @@ export function plainText(src: string): string {
     .trim();
 }
 
+/** Сноски Markdown: `[1]: https://…` → 1 → адрес. */
+type Refs = Map<string, string>;
+
+/** Позиция парной скобки: `[` на `start`, с учётом вложенных. */
+function matchBracket(src: string, start: number): number {
+  let depth = 0;
+  for (let i = start; i < src.length; i++) {
+    const c = src[i];
+    if (c === '\\') {
+      i++;
+      continue;
+    }
+    if (c === '[') depth++;
+    else if (c === ']') {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+/** Позиция парной скобки: `(` на `start`; в адресах бывают свои скобки. */
+function matchParen(src: string, start: number): number {
+  let depth = 0;
+  for (let i = start; i < src.length; i++) {
+    const c = src[i];
+    if (c === '\\') {
+      i++;
+      continue;
+    }
+    if (c === '(') depth++;
+    else if (c === ')') {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Ссылка или картинка в позиции `i`: `[т](url)`, `[т][1]`, `[т]`,
+ * `![alt](url)`, `![alt][1]`. Текст ссылки может содержать картинку —
+ * так авторы сборок делают кнопки-картинки.
+ */
+function parseLink(
+  src: string,
+  i: number,
+  refs?: Refs,
+): { node: ReactNode; len: number } | null {
+  const image = src[i] === '!' && src[i + 1] === '[';
+  const open = image ? i + 1 : i;
+  if (src[open] !== '[') return null;
+  const close = matchBracket(src, open);
+  if (close < 0) return null;
+  const label = src.slice(open + 1, close);
+  if (!label.trim()) return null;
+
+  let url = '';
+  let end = close + 1;
+  if (src[end] === '(') {
+    const p = matchParen(src, end);
+    if (p < 0) return null;
+    url = src
+      .slice(end + 1, p)
+      .trim()
+      .replace(/\s+(?:"[^"]*"|'[^']*')$/, '')
+      .trim();
+    end = p + 1;
+  } else if (src[end] === '[') {
+    const c2 = matchBracket(src, end);
+    if (c2 < 0) return null;
+    const id = (src.slice(end + 1, c2).trim() || label.trim()).toLowerCase();
+    url = refs?.get(id) ?? '';
+    end = c2 + 1;
+  } else if (refs) {
+    url = refs.get(label.trim().toLowerCase()) ?? '';
+  }
+  if (!url) return null;
+
+  if (image) {
+    if (!/^https?:/i.test(url)) return null;
+    return {
+      node: <img className="md-img" src={url} alt={label} loading="lazy" />,
+      len: end - i,
+    };
+  }
+  return { node: link(url, inline(label, refs)), len: end - i };
+}
+
 /** Разбирает одну строку на узлы: код, ссылки, картинки, выделения. */
-function inline(src: string): ReactNode[] {
+function inline(src: string, refs?: Refs): ReactNode[] {
   const out: ReactNode[] = [];
   let buf = '';
   let i = 0;
@@ -183,21 +272,12 @@ function inline(src: string): ReactNode[] {
       }
     }
 
-    // ![alt](url)
-    if (!node && src[i] === '!' && src[i + 1] === '[') {
-      const m = /^!\[([^\]]*)\]\(\s*(\S+?)(?:\s+"[^"]*")?\s*\)/.exec(rest);
-      if (m) {
-        node = <img className="md-img" src={m[2]} alt={m[1]} loading="lazy" />;
-        len = m[0].length;
-      }
-    }
-
-    // [text](url)
-    if (!node && src[i] === '[') {
-      const m = /^\[([^\]]*)\]\(\s*(\S+?)(?:\s+"[^"]*")?\s*\)/.exec(rest);
-      if (m) {
-        node = link(m[2], inline(m[1]));
-        len = m[0].length;
+    // ![alt](url), ![alt][1], [text](url), [text][1], [text]
+    if (!node && (src[i] === '[' || (src[i] === '!' && src[i + 1] === '['))) {
+      const hit = parseLink(src, i, refs);
+      if (hit) {
+        node = hit.node;
+        len = hit.len;
       }
     }
 
@@ -214,7 +294,7 @@ function inline(src: string): ReactNode[] {
     if (!node && src.startsWith('~~', i)) {
       const end = src.indexOf('~~', i + 2);
       if (end > i + 2) {
-        node = <del>{inline(src.slice(i + 2, end))}</del>;
+        node = <del>{inline(src.slice(i + 2, end), refs)}</del>;
         len = end + 2 - i;
       }
     }
@@ -231,12 +311,12 @@ function inline(src: string): ReactNode[] {
         node =
           marker.length === 3 ? (
             <strong>
-              <em>{inline(inner)}</em>
+              <em>{inline(inner, refs)}</em>
             </strong>
           ) : marker.length === 2 ? (
-            <strong>{inline(inner)}</strong>
+            <strong>{inline(inner, refs)}</strong>
           ) : (
-            <em>{inline(inner)}</em>
+            <em>{inline(inner, refs)}</em>
           );
         len = end + marker.length - i;
         break;
@@ -277,13 +357,13 @@ interface ListItem {
   text: string;
 }
 
-function List({ ordered, items }: { ordered: boolean; items: ListItem[] }) {
+function List({ ordered, items, refs }: { ordered: boolean; items: ListItem[]; refs?: Refs }) {
   const Tag = ordered ? 'ol' : 'ul';
   return (
     <Tag className="md-list">
       {items.map((it, i) => (
         <li key={i} style={{ marginLeft: it.depth * 16 }}>
-          {inline(it.text)}
+          {inline(it.text, refs)}
         </li>
       ))}
     </Tag>
@@ -293,6 +373,16 @@ function List({ ordered, items }: { ordered: boolean; items: ListItem[] }) {
 /** Разбор Markdown на блоки и отрисовка. */
 export function Markdown({ text }: { text: string }) {
   const lines = htmlToMarkdown(text).replace(/\r\n?/g, '\n').split('\n');
+  const refs: Refs = new Map();
+  // Сноски `[1]: https://…` собираем заранее и из текста убираем — так ссылки
+  // вида `[текст][1]` работают, даже если сноска описана ниже.
+  for (let n = 0; n < lines.length; n++) {
+    const m = /^\s{0,3}\[([^\]]+)\]:\s*<?([^\s>]+)>?/.exec(lines[n]);
+    if (m) {
+      refs.set(m[1].trim().toLowerCase(), m[2]);
+      lines[n] = '';
+    }
+  }
   const blocks: ReactNode[] = [];
   let i = 0;
   let k = 0;
@@ -329,7 +419,7 @@ export function Markdown({ text }: { text: string }) {
     // Заголовок
     const h = /^(#{1,6})\s+(.*)$/.exec(trimmed);
     if (h) {
-      next(<Heading level={h[1].length}>{inline(h[2])}</Heading>);
+      next(<Heading level={h[1].length}>{inline(h[2], refs)}</Heading>);
       i++;
       continue;
     }
@@ -348,7 +438,7 @@ export function Markdown({ text }: { text: string }) {
         q.push(lines[i].trim().replace(/^>\s?/, ''));
         i++;
       }
-      next(<blockquote className="md-quote">{inline(q.join(' '))}</blockquote>);
+      next(<blockquote className="md-quote">{inline(q.join(' '), refs)}</blockquote>);
       continue;
     }
 
@@ -372,7 +462,7 @@ export function Markdown({ text }: { text: string }) {
             <thead>
               <tr>
                 {head.map((c, n) => (
-                  <th key={n}>{inline(c)}</th>
+                  <th key={n}>{inline(c, refs)}</th>
                 ))}
               </tr>
             </thead>
@@ -380,7 +470,7 @@ export function Markdown({ text }: { text: string }) {
               {rows.map((r, n) => (
                 <tr key={n}>
                   {r.map((c, m) => (
-                    <td key={m}>{inline(c)}</td>
+                    <td key={m}>{inline(c, refs)}</td>
                   ))}
                 </tr>
               ))}
@@ -411,7 +501,7 @@ export function Markdown({ text }: { text: string }) {
           i++;
         }
       }
-      next(<List ordered={ordered} items={items} />);
+      next(<List ordered={ordered} items={items} refs={refs} />);
       continue;
     }
 
@@ -427,7 +517,7 @@ export function Markdown({ text }: { text: string }) {
       p.push(lines[i].trim());
       i++;
     }
-    next(<p className="md-p">{inline(p.join(' '))}</p>);
+    next(<p className="md-p">{inline(p.join(' '), refs)}</p>);
   }
 
   return <div className="md">{blocks}</div>;

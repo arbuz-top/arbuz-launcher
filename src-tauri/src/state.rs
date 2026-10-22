@@ -59,15 +59,42 @@ fn load_config() -> Config {
     cfg
 }
 
-/// Переименование лаунчера: один раз переносим старую папку данных
-/// (`%APPDATA%\Quarry`), чтобы не потерять профили и настройки.
+/// Один раз переносим данные из старых мест (`%APPDATA%\Quarry` после
+/// переименования лаунчера и `%APPDATA%\Arbuz Launcher` — до того, как данные
+/// переехали в свою папку рядом с лаунчером), чтобы не потерять профили,
+/// аккаунты и настройки.
 fn migrate_legacy_dir() {
     let Some(base) = dirs::data_dir() else {
         return;
     };
-    let old = base.join("Quarry");
     let new = paths::root();
-    if !new.exists() && old.is_dir() {
-        let _ = std::fs::rename(&old, &new);
+    for old in [base.join("Quarry"), base.join("Arbuz Launcher")] {
+        if new.exists() || !old.is_dir() || old == new {
+            continue;
+        }
+        move_dir(&old, &new);
     }
+}
+
+/// Переносим папку целиком: `rename` мгновенный, но между дисками не работает —
+/// тогда копируем.
+fn move_dir(old: &std::path::Path, new: &std::path::Path) {
+    if std::fs::rename(old, new).is_ok() {
+        return;
+    }
+    let _ = copy_dir(old, new);
+}
+
+fn copy_dir(from: &std::path::Path, to: &std::path::Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(to)?;
+    for entry in std::fs::read_dir(from)? {
+        let entry = entry?;
+        let target = to.join(entry.file_name());
+        if entry.file_type()?.is_dir() {
+            copy_dir(&entry.path(), &target)?;
+        } else {
+            std::fs::copy(entry.path(), target)?;
+        }
+    }
+    Ok(())
 }

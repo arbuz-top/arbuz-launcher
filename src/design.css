@@ -17,15 +17,10 @@
   font-display: swap;
 }
 
-/* Основной шрифт — arbuz-font (лежит в public/fonts, начертания подобраны под веса UI). */
-@font-face { font-family: 'arbuz-font'; src: url('/fonts/arbuz-font-regular.otf') format('opentype');  font-weight: 400; font-style: normal; font-display: swap; }
-@font-face { font-family: 'arbuz-font'; src: url('/fonts/arbuz-font-medium.otf') format('opentype');   font-weight: 500; font-style: normal; font-display: swap; }
-@font-face { font-family: 'arbuz-font'; src: url('/fonts/arbuz-font-semibold.otf') format('opentype'); font-weight: 600; font-style: normal; font-display: swap; }
-@font-face { font-family: 'arbuz-font'; src: url('/fonts/arbuz-font-bold.otf') format('opentype');     font-weight: 700; font-style: normal; font-display: swap; }
-@font-face { font-family: 'arbuz-font'; src: url('/fonts/arbuz-font-black.otf') format('opentype');    font-weight: 800 900; font-style: normal; font-display: swap; }
+/* Основной шрифт — Inter (локально, public/fonts), без внешних CDN. */
 
 #win {
-  font-family: arbuz-font, Montserrat, system-ui, sans-serif;
+  font-family: Inter, system-ui, sans-serif;
   --px: 'MinecraftFont', ui-monospace, monospace;
   --al: color-mix(in srgb, var(--pri) 55%, #fff);
   --ad: color-mix(in srgb, var(--pri) 55%, #000);
@@ -88,7 +83,7 @@
   position: relative; width: 100%; height: 48px; box-sizing: border-box;
   display: flex; align-items: center; gap: 12px; padding: 0 14px;
   background: transparent; color: var(--onv); border: 0; border-bottom: 1px solid var(--ln);
-  font: 700 14px/1 arbuz-font, Montserrat, sans-serif; cursor: pointer; text-align: left;
+  font: 700 14px/1 Inter, system-ui, sans-serif; cursor: pointer; text-align: left;
 }
 .side-item:hover { background: var(--s1); color: var(--on); }
 .side-item.on { background: var(--s1); color: var(--on); }
@@ -141,7 +136,7 @@
 .src-toggle { display: inline-flex; gap: 6px; margin-left: auto; }
 .src-btn {
   height: 28px; padding: 0 12px; border-radius: 4px; background: var(--s1);
-  border: 1px solid var(--ln); color: var(--onv); font: 700 12.5px/1 arbuz-font, Montserrat, sans-serif; cursor: pointer;
+  border: 1px solid var(--ln); color: var(--onv); font: 700 12.5px/1 Inter, system-ui, sans-serif; cursor: pointer;
 }
 .src-btn:hover { filter: brightness(1.15); }
 .src-btn.on { background: var(--s2); border-color: var(--pri); color: var(--on); }
@@ -225,7 +220,7 @@
 .acc-info b { font-weight: 800; font-size: 15px; color: var(--on); }
 .acc-info small { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--onv); }
 .acc-type { padding: 1px 8px; border-radius: 3px; background: var(--s2); color: var(--on); font-weight: 700; font-size: 11px; }
-.acc-add-title { font-family: arbuz-font, Montserrat, sans-serif; font-weight: 700; font-size: 12px; letter-spacing: .8px; color: var(--onv); margin-bottom: 10px; }
+.acc-add-title { font-family: Inter, system-ui, sans-serif; font-weight: 700; font-size: 12px; letter-spacing: .8px; color: var(--onv); margin-bottom: 10px; }
 .acc-add { display: flex; gap: 10px; flex-wrap: wrap; }
 
 /* ---------- Bottom bar ---------- */
@@ -276,12 +271,13 @@
   color: #fff;
 }
 .btn.sm { padding: 4px 10px; border-width: 1px; box-shadow: none; font-weight: 700; }
+.btn.with-ico { display: inline-flex; align-items: center; gap: 6px; }
 .panel { background: var(--s1); border: 1px solid var(--ln); border-radius: 8px; }
 h2 { font-family: var(--px); font-weight: 600; letter-spacing: .5px; font-size: 17px; }
 .lb, .ttl { font-family: var(--px); font-weight: 600; letter-spacing: .5px; }
 .tab { border-radius: 4px; font-weight: 700; }
 .tab.on { background: var(--s2); color: var(--on); }
-input[type=text], input[type=password], select, textarea { border-radius: 5px; border: 1px solid var(--ln); background: var(--s1); }
+input[type=text], input[type=password], input[type=number], select, textarea { border-radius: 5px; border: 1px solid var(--ln); background: var(--s1); }
 .tg { border-radius: 12px; }
 .seg button { border-radius: 4px; font-weight: 700; }
 .lr { border-top: 1px solid var(--ln); }
@@ -313,7 +309,7 @@ input[type=text], input[type=password], select, textarea { border-radius: 5px; b
 }
 .inst-menu button {
   width: 100%; height: 34px; padding: 0 12px; border: 0; border-radius: 4px;
-  background: transparent; color: var(--on); font: 700 12.5px/1 arbuz-font, Montserrat, sans-serif; text-align: left; cursor: pointer;
+  background: transparent; color: var(--on); font: 700 12.5px/1 Inter, system-ui, sans-serif; text-align: left; cursor: pointer;
 }
 .inst-menu button:hover { background: var(--s3); }
 .inst-menu button.danger { color: #ff8b80; }
@@ -344,7 +340,7 @@ input[type=text], input[type=password], select, textarea { border-radius: 5px; b
     transparent 1px 10px
   );
 }
-.home-more { color: var(--pri); font: 700 13px/1 arbuz-font, Montserrat, sans-serif; cursor: pointer; text-decoration: none; }
+.home-more { color: var(--pri); font: 700 13px/1 Inter, system-ui, sans-serif; cursor: pointer; text-decoration: none; }
 .home-more:hover { text-decoration: underline; }
 
 /* Меню аккаунтов в стиле лаунчера */
@@ -415,7 +411,7 @@ svg.nvi,.btn svg.nvi,.side-icon svg.nvi,.bottom-actions svg.nvi{fill:currentColo
 .mod-body::-webkit-scrollbar-thumb{background:var(--s3);border-radius:5px}
 
 /* ---------- Markdown в описаниях ---------- */
-.md{font-family:arbuz-font,Montserrat,system-ui,sans-serif;font-size:12.5px;line-height:1.6;color:var(--on)}
+.md{font-family:Inter, system-ui, sans-serif;font-size:12.5px;line-height:1.6;color:var(--on)}
 .md > *:first-child{margin-top:0}
 .md > *:last-child{margin-bottom:0}
 .md .md-h{font-family:inherit;font-weight:700;letter-spacing:0;line-height:1.3;margin:16px 0 8px;color:var(--on)}
@@ -449,7 +445,7 @@ svg.nvi,.btn svg.nvi,.side-icon svg.nvi,.bottom-actions svg.nvi{fill:currentColo
 /* ===========================================================================
    MONET — Material You: своя вёрстка, а не перекраска классической темы.
    Крупные радиусы, тональные поверхности без рамок, кнопки-пилюли,
-   типографика arbuz-font вместо пиксельной.
+   типографика Inter вместо пиксельной.
    =========================================================================== */
 #win[data-style=monet] .ttl,
 #win[data-style=monet] h2,
@@ -457,14 +453,13 @@ svg.nvi,.btn svg.nvi,.side-icon svg.nvi,.bottom-actions svg.nvi{fill:currentColo
 #win[data-style=monet] .home-tag,
 #win[data-style=monet] .bottom-play,
 #win[data-style=monet] .side-item b,
-#win[data-style=monet] .screen-title{font-family:arbuz-font,Montserrat,system-ui,sans-serif;letter-spacing:0}
+#win[data-style=monet] .screen-title{font-family:Inter, system-ui, sans-serif;letter-spacing:0}
 #win[data-style=monet] .ttl{font-weight:700;font-size:26px}
 #win[data-style=monet] h2{font-weight:600;font-size:16px;color:var(--onv)}
 #win[data-style=monet] .lb{font-weight:500;font-size:12px;color:var(--onv);text-transform:uppercase;letter-spacing:.6px}
 
-#win[data-style=monet]{--r:16px;--rb:20px;--rp:28px;--px:arbuz-font,Montserrat,system-ui,sans-serif}
+#win[data-style=monet]{--r:16px;--rb:20px;--rp:28px;--px:Inter, system-ui, sans-serif;grid-template-rows:44px 1fr}
 #win[data-style=monet] #tb{background:var(--bg);border-bottom:0;height:44px}
-#win[data-style=monet] #win{grid-template-rows:44px 1fr}
 #win[data-style=monet] .tb-brand b{font-weight:600;letter-spacing:0}
 #win[data-style=monet] .tb-icobtn{border-radius:50%}
 #win[data-style=monet] .tb-win button{border-radius:50%;width:36px;height:36px;margin:4px 2px}
@@ -473,7 +468,7 @@ svg.nvi,.btn svg.nvi,.side-icon svg.nvi,.bottom-actions svg.nvi{fill:currentColo
 #win[data-style=monet] .side-acc{border:0;border-radius:24px;background:var(--s1);margin-bottom:10px}
 #win[data-style=monet] .side-item{
   height:52px;margin:4px 0;border:0;border-radius:26px;padding:0 18px;
-  font-family:arbuz-font,Montserrat,system-ui,sans-serif;font-weight:600;font-size:14px;
+  font-family:Inter, system-ui, sans-serif;font-weight:600;font-size:14px;
 }
 #win[data-style=monet] .side-item.on{background:var(--pric);color:var(--onpric)}
 #win[data-style=monet] .side-item.on::before{display:none}
@@ -497,7 +492,7 @@ svg.nvi,.btn svg.nvi,.side-icon svg.nvi,.bottom-actions svg.nvi{fill:currentColo
 
 #win[data-style=monet] .btn{
   border:0;border-radius:999px;height:40px;padding:0 22px;background:var(--s2);color:var(--on);
-  font-family:arbuz-font,Montserrat,system-ui,sans-serif;font-weight:600;font-size:13.5px;
+  font-family:Inter, system-ui, sans-serif;font-weight:600;font-size:13.5px;
   box-shadow:none;
 }
 #win[data-style=monet] .btn:hover{filter:none;background:var(--s3)}
@@ -513,14 +508,27 @@ svg.nvi,.btn svg.nvi,.side-icon svg.nvi,.bottom-actions svg.nvi{fill:currentColo
 #win[data-style=monet] .src-btn.on{background:var(--pric);color:var(--onpric)}
 
 #win[data-style=monet] input,
-#win[data-style=monet] select,
-#win[data-style=monet] textarea{border:0;border-radius:14px;background:var(--s2);height:44px;padding:0 16px}
+#win[data-style=monet] select{border:0;border-radius:14px;background:var(--s2);height:44px;padding:0 16px}
+/* Многострочное поле не должно наследовать высоту однострочного. */
+#win[data-style=monet] textarea{border:0;border-radius:18px;background:var(--s2);height:auto;min-height:96px;padding:14px 16px;line-height:1.5;resize:vertical}
+/* Пилюля темы: внутри Monet у неё нет рамки, а мини-превью повторяет скругление. */
+#win[data-style=monet] .theme-sum{border-radius:26px;box-shadow:none}
+#win[data-style=monet] .theme-thumb{border-radius:20px}
+#win[data-style=monet] .theme-act{background:var(--s2);border-radius:999px;padding:6px 14px;font-weight:600}
+#win[data-style=monet] .tcard{background:var(--s1);border-radius:26px;box-shadow:none}
+#win[data-style=monet] .tcard.on{box-shadow:inset 0 0 0 2px var(--pri)}
+#win[data-style=monet] .pk-card{background:var(--s1);border-radius:26px;box-shadow:none}
+#win[data-style=monet] .pk-issue{border-radius:18px}
 #win[data-style=monet] .sw{padding:10px 0}
 #win[data-style=monet] .tg{border-radius:999px}
 
+/* Flat: переключатели квадратные — под стать пиксельному интерфейсу. */
+#win[data-style=flat] .tg,
+#win[data-style=flat] .tg::after{border-radius:0}
+
 #win[data-style=monet] .hero2{border-radius:32px;margin:14px 18px 0;height:280px}
 #win[data-style=monet] .home-tag{background:var(--s2);border-radius:999px;padding:7px 14px;font-weight:600}
-#win[data-style=monet] .home-more{font-family:arbuz-font,Montserrat,system-ui,sans-serif;font-weight:600}
+#win[data-style=monet] .home-more{font-family:Inter, system-ui, sans-serif;font-weight:600}
 
 #win[data-style=monet] .bottom{
   border:0;background:var(--sbg);padding:10px 14px;
@@ -543,7 +551,7 @@ svg.nvi,.btn svg.nvi,.side-icon svg.nvi,.bottom-actions svg.nvi{fill:currentColo
 #win[data-style=monet] .onb-lang.on{background:var(--pric);color:var(--onpric)}
 #win[data-style=monet] .onb-head{border-bottom:0;background:var(--bg)}
 #win[data-style=monet] .onb-actions{border-top:0;background:var(--bg)}
-#win[data-style=monet] .onb-head b{font-family:arbuz-font,Montserrat,system-ui,sans-serif;font-weight:600}
+#win[data-style=monet] .onb-head b{font-family:Inter, system-ui, sans-serif;font-weight:600}
 #win[data-style=monet] .screen-scroll::-webkit-scrollbar-thumb,
 #win[data-style=monet] .pg::-webkit-scrollbar-thumb{border-radius:999px}
 #win[data-style=monet] table th{font-weight:600;color:var(--onv);border-bottom:1px solid var(--ln)}
@@ -606,9 +614,9 @@ svg.nvi,.btn svg.nvi,.side-icon svg.nvi,.bottom-actions svg.nvi{fill:currentColo
   border-color: color-mix(in srgb, var(--pri) 50%, var(--ln));
   color: var(--on); opacity: 1; cursor: default;
 }
-/* Белый текст на всех темах, кроме Monet; Catppuccin тоже белый. */
-#win:not([data-theme=monet]) .btn.pr,
-#win:not([data-theme=monet]) .bottom-play { color: #fff; }
+/* Белый текст на всех темах, кроме Monet; Catppuccin и Dracula тоже тональные. */
+#win:not([data-style=monet]) .btn.pr,
+#win:not([data-style=monet]) .bottom-play { color: #fff; }
 
 /* ---------- Вкладка «Сборка» ---------- */
 .pk{max-width:1180px}
@@ -681,7 +689,7 @@ svg.nvi,.btn svg.nvi,.side-icon svg.nvi,.bottom-actions svg.nvi{fill:currentColo
 /* ---------- ИИ-ассистент сборок ---------- */
 .ai-mod{width:640px}
 .ai-mod .r{max-height:88vh;overflow:auto}
-.ai-prompt{font:12.5px/1.5 arbuz-font,Montserrat,sans-serif !important;min-height:96px;resize:vertical}
+.ai-prompt{font:12.5px/1.5 Inter, system-ui, sans-serif !important;min-height:96px;resize:vertical}
 .ai-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
 .ai-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0 4px}
 .ai-list-wrap{margin-top:12px}
@@ -696,7 +704,66 @@ svg.nvi,.btn svg.nvi,.side-icon svg.nvi,.bottom-actions svg.nvi{fill:currentColo
 .ai-tx b{font-weight:700;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ai-tx small{color:var(--onv);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ai-dl{flex:none;color:var(--onv);font-size:11.5px}
+.ai-src{flex:none;font-size:10px;font-weight:700;letter-spacing:.4px;padding:2px 7px;border-radius:999px;background:var(--s3);color:var(--onv);text-transform:none}
+.ai-src.s-modrinth{background:rgba(30,199,112,.16);color:#4fd68f}
+.ai-src.s-curseforge{background:rgba(241,135,30,.16);color:#f5a55a}
 .ai-err{margin-top:12px;font-size:12.5px;line-height:1.45;color:#ff9d92;background:rgba(229,81,63,.1);border-radius:var(--r);padding:10px 12px;word-break:break-word}
 .ai-bar{height:8px;border-radius:999px;background:var(--s3);overflow:hidden;margin-top:14px}
 .ai-bar span{display:block;height:100%;background:var(--pri);transition:width .2s ease-out}
 #win[data-style=monet] .ai-item{border-radius:18px;background:var(--s2)}
+
+/* ---------- Игра по сети ---------- */
+.lan-card{margin-top:14px;padding:14px 16px}
+.lan-addr{flex:1;min-width:0;font:600 13px/1 ui-monospace,Consolas,monospace;background:var(--s2);border-radius:var(--rb);padding:10px 12px;color:var(--on);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;user-select:text}
+.lan-code{font:600 12px/1.5 ui-monospace,Consolas,monospace;background:var(--s2);border-radius:var(--rb);padding:10px 12px;color:var(--on);word-break:break-all;user-select:text}
+.lan-in{flex:1;min-width:0;background:var(--s2);color:var(--on);border:2px solid transparent;border-radius:var(--r);padding:8px 12px;font:inherit;outline:0}
+.lan-in:focus{border-color:var(--pri)}
+
+/* Обновление сборки в «Контенте» */
+.pk-upd{padding:14px;margin-bottom:14px}
+.pk-log{max-height:180px;overflow:auto;margin-top:10px;padding:10px 12px;background:var(--s2);border-radius:var(--r);font-size:13px}
+.upd-list{margin-top:12px;display:flex;flex-direction:column;gap:6px;max-height:380px;overflow:auto}
+.upd-row{display:flex;align-items:center;gap:10px;padding:6px 8px;background:var(--s2);border-radius:var(--r)}
+.upd-row .ck{flex:none}
+
+/* Серверы */
+.srv-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--ln)}
+.srv-row:last-child{border-bottom:0}
+.srv-ico{width:34px;height:34px;border-radius:var(--r);background:var(--s3);display:grid;place-items:center;font-weight:600;flex:none}
+.srv-con{margin:0;height:420px;overflow:auto;background:var(--s2);border-radius:var(--r);padding:10px 12px;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+
+/* Игроки в комнате */
+.pk-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--s2);font-size:12px;max-width:100%}
+#win[data-style=monet] .pk-upd{border-radius:20px}
+#win[data-style=monet] .pk-log{border-radius:16px}
+.lan-sep{display:flex;align-items:center;gap:8px;margin:14px 0 8px;color:var(--onv);font-size:12px}
+.lan-sep:before,.lan-sep:after{content:"";flex:1;height:1px;background:var(--ln)}
+#win[data-style=monet] .lan-card{border-radius:24px;background:var(--s1);box-shadow:0 1px 2px rgba(0,0,0,.22),0 2px 8px rgba(0,0,0,.12)}
+#win[data-style=monet] .lan-addr{border-radius:999px;background:var(--s2);padding:12px 18px}
+
+/* ---------- Консоль профиля ---------- */
+.con-panel{border:1px solid var(--ln);border-radius:var(--r,8px);overflow:hidden;background:var(--s1)}
+.con-bar{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--ln);background:var(--sbg);flex-wrap:wrap}
+.con-dot{width:8px;height:8px;border-radius:50%;background:var(--onv);opacity:.45;flex:none}
+.con-dot.on{background:#6fbf4d;opacity:1;box-shadow:0 0 8px #6fbf4d88}
+.con-state{font-size:12.5px;font-weight:600;color:var(--onv);white-space:nowrap}
+.con-q{flex:1 1 180px;min-width:120px;height:30px;padding:0 10px;border-radius:var(--rb,8px);border:1px solid var(--ln);background:var(--bg);color:var(--on);font:12.5px Inter,system-ui,sans-serif;outline:none}
+.con-q:focus{border-color:var(--pri)}
+.con-q::placeholder{color:var(--onv)}
+.con-count{font-size:11.5px;color:var(--onv);white-space:nowrap}
+.con-body{height:min(56vh,520px);overflow:auto;padding:10px 12px;background:#0e1014;color:#c9d3df;font:12px/1.45 ui-monospace,'Cascadia Mono',Consolas,monospace;scrollbar-width:thin}
+.con-line{white-space:pre-wrap;word-break:break-word;padding:1px 0}
+.con-line.warn{color:#e5c07b}
+.con-line.err{color:#ef7d6b}
+.con-empty{height:100%;display:grid;place-items:center;color:#6b7785;font:13px Inter,system-ui,sans-serif;text-align:center}
+.con-foot{display:flex;justify-content:space-between;gap:10px;padding:7px 12px;border-top:1px solid var(--ln);font-size:11px;color:var(--onv);background:var(--sbg)}
+
+/* ---------- Комната Co-op ---------- */
+.room-list{margin-top:12px;border-top:1px solid var(--ln);padding-top:10px;display:flex;flex-direction:column;gap:6px}
+.room-head-lb{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--onv);margin-bottom:2px}
+.room-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--rb,8px);background:var(--bg);border:1px solid transparent}
+.room-row.me{border-color:color-mix(in srgb,var(--pri) 45%,transparent);background:color-mix(in srgb,var(--pri) 8%,var(--bg))}
+.room-ava{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--s1);color:var(--on);font:600 11px Inter,system-ui,sans-serif;flex:none}
+.room-nm{font-size:12.5px;color:var(--on);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.room-you{margin-left:6px;font-size:10.5px;color:var(--onv)}
+.room-owner{font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#e0b34a;border:1px solid #e0b34a55;border-radius:999px;padding:2px 7px;white-space:nowrap}

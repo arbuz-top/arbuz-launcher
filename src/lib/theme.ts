@@ -1,5 +1,5 @@
 import { monet, ink, mix } from './color';
-export type Style = 'flat' | 'monet' | 'amoled' | 'catppuccin' | 'custom';
+export type Style = 'flat' | 'monet' | 'amoled' | 'catppuccin' | 'dracula' | 'custom';
 export type Roles = Record<string, string>;
 
 /** Полностью своя тема: цвета, размеры текста/кнопок и ширина сайдбара. */
@@ -128,11 +128,43 @@ const LATTE: CatTokens = {
 
 export const catTokens = (dark: boolean): CatTokens => (dark ? MOCHA : LATTE);
 
-/** Monet и Catppuccin — «мягкий» вариант: скругления и другая типографика. */
-export const isSoft = (style: Style): boolean => style === 'monet' || style === 'catppuccin';
+/** Официальные токены Dracula (draculatheme.com/about). */
+export interface DraculaTokens {
+  background: string;
+  currentLine: string;
+  foreground: string;
+  comment: string;
+  cyan: string;
+  green: string;
+  orange: string;
+  pink: string;
+  purple: string;
+  red: string;
+  yellow: string;
+}
+
+const DRACULA: DraculaTokens = {
+  background: '#282a36', currentLine: '#44475a', foreground: '#f8f8f2', comment: '#6272a4',
+  cyan: '#8be9fd', green: '#50fa7b', orange: '#ffb86c', pink: '#ff79c6',
+  purple: '#bd93f9', red: '#ff5555', yellow: '#f1fa8c',
+};
+
+/** Alucard — официальная светлая версия Dracula. */
+const ALUCARD: DraculaTokens = {
+  background: '#fffbeb', currentLine: '#cfcfde', foreground: '#1f1f1f', comment: '#6c664b',
+  cyan: '#036a96', green: '#14710a', orange: '#a34d14', pink: '#a3144d',
+  purple: '#644ac9', red: '#cb3a2a', yellow: '#846e15',
+};
+
+export const draculaTokens = (dark: boolean): DraculaTokens => (dark ? DRACULA : ALUCARD);
+
+/** Monet, Catppuccin и Dracula — «мягкий» вариант: скругления и другая типографика. */
+export const isSoft = (style: Style): boolean =>
+  style === 'monet' || style === 'catppuccin' || style === 'dracula';
 
 /** Monet-подобные темы: та же вёрстка и Material-иконки. */
-export const monetLike = (style: string): boolean => style === 'monet' || style === 'catppuccin';
+export const monetLike = (style: string): boolean =>
+  style === 'monet' || style === 'catppuccin' || style === 'dracula';
 
 /** Мягкая ли тема с учётом своей (у неё есть отдельный переключатель). */
 export const softOf = (style: Style, custom?: CustomTheme | null): boolean =>
@@ -140,7 +172,9 @@ export const softOf = (style: Style, custom?: CustomTheme | null): boolean =>
 
 /** Приводит строку из конфига к известной теме. */
 export const normStyle = (v: string): Style =>
-  v === 'monet' || v === 'amoled' || v === 'catppuccin' || v === 'custom' ? v : 'flat';
+  v === 'monet' || v === 'amoled' || v === 'catppuccin' || v === 'dracula' || v === 'custom'
+    ? v
+    : 'flat';
 
 /** Плоские темы: базовая палитра + акцент пользователя. */
 function plain(base: Roles, accent: string): Roles {
@@ -170,6 +204,32 @@ function catppuccin(dark: boolean): Roles {
     sec: c.surface0, onsec: c.text,
     pric: '#d8c8f4', onpric: c.text,
     ter: c.teal, terc: '#c8e0e4', onterc: c.text,
+  };
+}
+
+/** Dracula: официальная палитра Dracula / Alucard, акцент из настроек не применяется. */
+function dracula(dark: boolean): Roles {
+  if (dark) {
+    const c = DRACULA;
+    return {
+      bg: c.background, sbg: '#21222c', s1: '#343746', s2: c.currentLine, s3: '#565970',
+      // Прозрачный комментарий слишком тусклый для подсказок — подмешиваем светлый.
+      on: c.foreground, onv: mix(c.comment, c.foreground, 0.35),
+      ln: c.currentLine, outl: c.comment,
+      pri: c.purple, onpri: c.background,
+      sec: c.currentLine, onsec: c.foreground,
+      pric: mix(c.purple, '#343746', 0.55), onpric: c.foreground,
+      ter: c.cyan, terc: mix(c.cyan, '#343746', 0.62), onterc: c.foreground,
+    };
+  }
+  const c = ALUCARD;
+  return {
+    bg: c.background, sbg: '#f7f2e0', s1: '#ffffff', s2: '#ece7d5', s3: '#dedac8',
+    on: c.foreground, onv: c.comment, ln: '#dedac8', outl: '#b3ab93',
+    pri: c.purple, onpri: '#fffbeb',
+    sec: '#ece7d5', onsec: c.foreground,
+    pric: mix(c.purple, '#ffffff', 0.62), onpric: c.foreground,
+    ter: c.cyan, terc: mix(c.cyan, '#ffffff', 0.72), onterc: c.foreground,
   };
 }
 
@@ -209,6 +269,7 @@ export function getRoles(
   if (style === 'custom') return customRoles(normCustom(custom));
   if (style === 'monet') return monet(dark, accent);
   if (style === 'catppuccin') return catppuccin(dark);
+  if (style === 'dracula') return dracula(dark);
   if (style === 'amoled') return plain(AMOLED, accent);
   return plain(dark ? FLAT_DARK : FLAT_LIGHT, accent);
 }
@@ -224,7 +285,7 @@ export function applyTheme(
   for (const k in r) el.style.setProperty('--' + k, r[k]);
   el.dataset.v = softOf(style, custom) ? 'b' : 'a';
   // Стиль темы отдельным атрибутом: Monet и классика отличаются не только цветом.
-  el.dataset.style = style === 'catppuccin' ? 'monet' : style;
+  el.dataset.style = style === 'catppuccin' || style === 'dracula' ? 'monet' : style;
   if (style === 'custom') {
     const c = normCustom(custom);
     el.dataset.custom = '1';

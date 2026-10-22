@@ -1,14 +1,14 @@
 import { useMemo } from 'react';
 import { create } from 'zustand';
 import { convertFileSrc } from '@tauri-apps/api/core';
-import { api, type Account, type CatalogItem, type Config, type ContentItem, type Instance, type JavaInstall, type McVersion, type NewsItem, type Skin, type World } from './lib/api';
+import { api, type Account, type CatalogItem, type Config, type ContentItem, type Instance, type JavaInstall, type LauncherUpdate, type McVersion, type NewsItem, type Skin, type World } from './lib/api';
 import type { ArtTheme } from './lib/art';
 import { DEFAULT_CUSTOM, normStyle } from './lib/theme';
 import { cachedAnim } from './lib/anim';
 
-export type View = 'home' | 'installs' | 'accounts' | 'p' | 'app' | 'browse';
+export type View = 'home' | 'installs' | 'accounts' | 'p' | 'app' | 'browse' | 'coop';
 export type Tab = 'play' | 'mods' | 'worlds' | 'shots' | 'cfg';
-export type Sec = 'g' | 'j' | 'w' | 'c' | 'p' | 'm' | 's';
+export type Sec = 'g' | 'j' | 'w' | 'c' | 'p' | 'm' | 's' | 'u' | 'v';
 export type Modal = { p: 'ms' | 'ely' | 'off' | 'lsk' | 'pick' } | null;
 
 /** Внутрилаунчерный диалог подтверждения вместо системного window.confirm. */
@@ -33,12 +33,16 @@ export const DEFAULT_CONFIG: Config = {
   defaultJava: 21,
   closeOnLaunch: false,
   showConsole: true,
-  checkUpdates: true,
+  checkLauncherUpdates: true,
+  closeToTray: true,
   hideEmpty: false,
   modIsolationEnabled: false,
   modIsolationLevel: 'min',
   curseforgeApiKey: '',
   aiBuilder: true,
+  aiPackLimit: 0,
+  aiPackSource: '',
+  aiPackModel: '',
   // До загрузки config.json берём настройки прошлого запуска из localStorage:
   // первый экран не должен дёргаться у тех, кто анимации выключил.
   anim: cachedAnim(),
@@ -85,6 +89,8 @@ export interface StoreState {
   modal: Modal;
   confirm: ConfirmReq | null;
   menu: boolean;
+  /** Найденное обновление лаунчера (окно с предложением скачать). */
+  appUpdate: LauncherUpdate | null;
   /** Режим расстановки: кнопки можно таскать мышью. */
   move: boolean;
   setMove: (v: boolean) => void;
@@ -183,6 +189,7 @@ export const useStore = create<StoreState>((set, get) => {
   modal: null,
   confirm: null,
   menu: false,
+  appUpdate: null,
   move: false,
   setMove: (v) => set({ move: v }),
   iconBust: {},

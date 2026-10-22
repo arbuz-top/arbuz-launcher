@@ -1,10 +1,17 @@
 name: Build
 
+# Собираем на всех трёх ОС. Windows — свой NSIS-установщик (портативные данные
+# рядом с лаунчером), macOS — universal .dmg (Intel + Apple Silicon), Linux —
+# AppImage, .deb и .rpm.
+#
+# Тег v1.2.3 (или ручной запуск с указанным релизом) дополнительно создаёт
+# GitHub Release со всеми файлами — по нему лаунчер и проверяет обновления.
+
 on:
   workflow_dispatch:
     inputs:
       release:
-        description: 'Тег релиза (например 1.0.1). Пусто — только сборка без релиза.'
+        description: 'Тег релиза (например 1.0.1). Пусто — только собрать артефакты.'
         required: false
         default: ''
   push:
@@ -12,19 +19,28 @@ on:
     tags: ['v*']
   pull_request:
 
-# Один запуск на ветку: повторный пуш отменяет предыдущую сборку,
-# а не запускает вторую.
+# Новый пуш в ту же ветку отменяет старую сборку, но не трогает релизы.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 permissions:
   contents: read
 
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  # pnpm не должен пытаться обновлять lock-файл в CI.
+  CI: 'true'
+
 jobs:
-  linux:
-    name: Linux (deb, rpm, AppImage)
+  # ---------------------------------------------------------------------------
+  # Быстрая проверка: типы фронтенда + тесты Rust (без сборки установщиков).
+  # ---------------------------------------------------------------------------
+  check:
+    name: Проверка (tsc + cargo test)
     runs-on: ubuntu-22.04
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -36,87 +52,52 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          cache-on-failure: true
 
-      - name: Системные зависимости
+      - name: Системные библиотеки (Tauri)
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
+          sudo apt-get install -y --no-install-recommends \
             libwebkit2gtk-4.1-dev \
-            build-essential \
-            curl wget file \
-            libxdo-dev \
-            libssl-dev \
+            libgtk-3-dev \
+            libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev \
             libayatana-appindicator3-dev \
             librsvg2-dev \
-            patchelf
+            libxdo-dev \
+            libdbus-1-dev \
+            libssl-dev \
+            patchelf \
+            build-essential
 
       - name: Зависимости фронтенда
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
-      - name: Разрешить бандлы
-        run: node -e "const fs=require('fs');const p='src-tauri/tauri.conf.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));j.bundle.targets=['deb','rpm','appimage'];fs.writeFileSync(p,JSON.stringify(j,null,2));"
+      - name: Типы TypeScript
+        run: pnpm check
 
-      - name: Сборка пакетов
-        env:
-          APPIMAGE_EXTRACT_AND_RUN: "1"
-        run: pnpm tauri build --bundles deb,rpm,appimage
+      # cargo test компилирует lib.rs с generate_context! — ему нужен собранный dist/.
+      - name: Сборка фронтенда
+        run: pnpm exec vite build
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Arbuz-Launcher-linux
-          if-no-files-found: error
-          path: |
-            src-tauri/target/release/bundle/deb/*.deb
-            src-tauri/target/release/bundle/rpm/*.rpm
-            src-tauri/target/release/bundle/appimage/*.AppImage
+      - name: Тесты Rust
+        run: pnpm test
 
-  macos:
-    name: macOS (dmg)
-    runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 12
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-apple-darwin,x86_64-apple-darwin
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-
-      - name: Зависимости фронтенда
-        run: pnpm install --no-frozen-lockfile
-
-      - name: Разрешить бандлы
-        run: node -e "const fs=require('fs');const p='src-tauri/tauri.conf.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));j.bundle.targets=['dmg'];fs.writeFileSync(p,JSON.stringify(j,null,2));"
-
-      - name: Сборка (universal)
-        run: pnpm tauri build --target universal-apple-darwin --bundles dmg
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Arbuz-Launcher-macos
-          if-no-files-found: error
-          path: src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
-
+  # ---------------------------------------------------------------------------
+  # Windows: exe + свой NSIS-установщик.
+  # ---------------------------------------------------------------------------
   windows:
-    name: Windows (установщик)
+    name: Windows (exe + setup)
+    if: github.event_name != 'pull_request'
     runs-on: windows-latest
+    timeout-minutes: 60
     defaults:
       run:
         shell: pwsh
@@ -131,43 +112,207 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          cache-on-failure: true
 
       - name: Зависимости фронтенда
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
-      - name: Установить NSIS
-        run: choco install nsis --yes --no-progress
+      - name: Версия
+        id: ver
+        env:
+          RELEASE_INPUT: ${{ github.event.inputs.release }}
+        run: node scripts/ci-version.mjs
 
-      - name: Собрать лаунчер
+      - name: NSIS
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (Get-Command makensis -ErrorAction SilentlyContinue) { exit 0 }
+          choco install nsis --no-progress -y
+          # choco кладёт makensis в Program Files (x86), скрипт установщика его найдёт.
+          $mk = 'C:\Program Files (x86)\NSIS\makensis.exe'
+          if (-not (Test-Path $mk)) { throw "makensis не найден: $mk" }
+
+      - name: Сборка лаунчера
         run: pnpm tauri build --no-bundle
 
-      - name: Собрать установщик
+      - name: Установщик
         run: pnpm installer
 
-      - name: Портативный exe
+      - name: Имена файлов релиза
         run: |
-          $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
-          Copy-Item src-tauri/target/release/arbuz-launcher.exe "Arbuz-Launcher-${version}-portable.exe"
+          $ErrorActionPreference = 'Stop'
+          $v = '${{ steps.ver.outputs.version }}'
+          New-Item -ItemType Directory -Force out | Out-Null
+          $setup = Get-ChildItem 'src-tauri\target\release\bundle\arbuz\*.exe' | Select-Object -First 1
+          if (-not $setup) { throw 'установщик не собрался' }
+          Copy-Item $setup.FullName "out/Arbuz-Launcher-$v-windows-x64-setup.exe"
+          Copy-Item 'src-tauri\target\release\arbuz-launcher.exe' "out/Arbuz-Launcher-$v-windows-x64-portable.exe"
+          Get-ChildItem out | Select-Object Name, Length
 
       - uses: actions/upload-artifact@v4
         with:
           name: Arbuz-Launcher-windows
           if-no-files-found: error
-          path: |
-            src-tauri/target/release/bundle/arbuz/*.exe
-            Arbuz-Launcher-*-portable.exe
+          retention-days: 14
+          path: out/*
 
+  # ---------------------------------------------------------------------------
+  # macOS: universal .dmg (arm64 + x86_64), подпись не нужна.
+  # ---------------------------------------------------------------------------
+  macos:
+    name: macOS (universal dmg)
+    if: github.event_name != 'pull_request'
+    runs-on: macos-14
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          cache-on-failure: true
+
+      - name: Зависимости фронтенда
+        run: pnpm install --frozen-lockfile
+
+      - name: Версия
+        id: ver
+        env:
+          RELEASE_INPUT: ${{ github.event.inputs.release }}
+        run: node scripts/ci-version.mjs
+
+      - name: Сборка (universal)
+        run: pnpm tauri build --target universal-apple-darwin --bundles dmg
+
+      - name: Имя файла релиза
+        run: |
+          set -euo pipefail
+          v="${{ steps.ver.outputs.version }}"
+          mkdir -p out
+          dmg=$(find src-tauri/target/universal-apple-darwin/release/bundle/dmg -name '*.dmg' | head -n 1)
+          test -n "$dmg"
+          cp "$dmg" "out/Arbuz-Launcher-$v-macos-universal.dmg"
+          ls -lh out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Arbuz-Launcher-macos
+          if-no-files-found: error
+          retention-days: 14
+          path: out/*
+
+  # ---------------------------------------------------------------------------
+  # Linux: AppImage (запускается везде), deb и rpm для пакетных менеджеров.
+  # ---------------------------------------------------------------------------
+  linux:
+    name: Linux (AppImage, deb, rpm)
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    env:
+      # AppImage-инструменты сами распаковываются: FUSE на раннере нет.
+      APPIMAGE_EXTRACT_AND_RUN: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          cache-on-failure: true
+
+      - name: Системные библиотеки (Tauri)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libxdo-dev \
+            libdbus-1-dev \
+            libssl-dev \
+            patchelf \
+            libfuse2 \
+            rpm \
+            file \
+            wget \
+            build-essential
+
+      - name: Зависимости фронтенда
+        run: pnpm install --frozen-lockfile
+
+      - name: Версия
+        id: ver
+        env:
+          RELEASE_INPUT: ${{ github.event.inputs.release }}
+        run: node scripts/ci-version.mjs
+
+      - name: Сборка пакетов
+        run: pnpm tauri build --bundles deb,rpm,appimage
+
+      - name: Имена файлов релиза
+        run: |
+          set -euo pipefail
+          v="${{ steps.ver.outputs.version }}"
+          mkdir -p out
+          b=src-tauri/target/release/bundle
+          cp "$(find $b/appimage -name '*.AppImage' | head -n1)" "out/Arbuz-Launcher-$v-linux-x86_64.AppImage"
+          cp "$(find $b/deb -name '*.deb' | head -n1)"         "out/Arbuz-Launcher-$v-linux-amd64.deb"
+          cp "$(find $b/rpm -name '*.rpm' | head -n1)"         "out/Arbuz-Launcher-$v-linux-x86_64.rpm"
+          chmod +x out/*.AppImage
+          ls -lh out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Arbuz-Launcher-linux
+          if-no-files-found: error
+          retention-days: 14
+          path: out/*
+
+  # ---------------------------------------------------------------------------
+  # Релиз: только по тегу v* или при ручном запуске с указанным тегом.
+  # ---------------------------------------------------------------------------
   release:
-    name: Релиз
-    needs: [windows, linux, macos]
+    name: Публикация релиза
+    needs: [windows, macos, linux]
     if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.event.inputs.release != '')
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
     steps:
@@ -178,6 +323,12 @@ jobs:
 
       - name: Список файлов
         run: find dist -type f | sort
+
+      - name: Контрольные суммы
+        run: |
+          cd dist
+          find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
+          cat SHA256SUMS.txt
 
       - name: Тег
         id: ver
@@ -197,5 +348,5 @@ jobs:
           tag_name: ${{ steps.ver.outputs.tag }}
           name: Arbuz Launcher ${{ steps.ver.outputs.tag }}
           generate_release_notes: true
-          files: dist/**/*
           fail_on_unmatched_files: true
+          files: dist/**/*

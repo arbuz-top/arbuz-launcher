@@ -1,8 +1,8 @@
 // Вкладка «Контент» профиля (vMods + cl из макета)
 import { convertFileSrc } from '@tauri-apps/api/core';
-import { memo, useCallback, useEffect, useState, type CSSProperties } from 'react';
+import { memo, useCallback, useState, type CSSProperties } from 'react';
 import { pi } from '../lib/art';
-import { api, type ContentItem, type Instance, type UpdateInfo } from '../lib/api';
+import { api, type ContentItem, type Instance } from '../lib/api';
 import { fmtBytes } from '../lib/format';
 import { useT } from '../lib/i18n';
 import { LOADER_LABEL } from '../lib/labels';
@@ -24,7 +24,7 @@ const FILTERS: [string, string][] = [
 ];
 
 /** Иконка контента: из архива, иначе с CDN Modrinth, иначе первая буква. */
-const ModIcon = memo(function ModIcon({ item, size }: { item: ContentItem; size: number }) {
+export const ModIcon = memo(function ModIcon({ item, size }: { item: ContentItem; size: number }) {
   const src = item.icon ? convertFileSrc(item.icon) : item.iconUrl;
   if (!src) {
     const ch = (item.name || '?').trim().charAt(0).toUpperCase() || '?';
@@ -58,7 +58,6 @@ export function ContentTab({
   const cq = useStore((s) => s.cq);
   const flt = useStore((s) => s.flt);
   const items = useStore((s) => s.content);
-  const checkUpd = useStore((s) => s.config.checkUpdates);
   const instances = useStore((s) => s.instances);
   const dataRoot = useStore((s) => s.dataRoot);
   const skins = useStore((s) => s.skins);
@@ -67,8 +66,6 @@ export function ContentTab({
   const acc = curAccount(useStore.getState());
   const t = useT();
   const [busy, setBusy] = useState(false);
-  /** Доступные обновления: file -> новая версия. */
-  const [updates, setUpdates] = useState<Record<string, string>>({});
 
   const reload = useCallback(async () => {
     try {
@@ -78,52 +75,19 @@ export function ContentTab({
     }
   }, [inst.id]);
 
-  // Метки обновлений (ТЗ §12-b, чеклист 8).
-  const check = useCallback(async () => {
-    if (!checkUpd) {
-      setUpdates({});
-      return;
-    }
-    try {
-      const list: UpdateInfo[] = await api.checkUpdates(inst.id);
-      setUpdates(Object.fromEntries(list.map((u) => [u.file, u.newVersion])));
-    } catch (e) {
-      useStore.getState().toastMsg(String(e));
-    }
-  }, [inst.id, checkUpd]);
-
-  useEffect(() => {
-    void check();
-  }, [check]);
-
-  const applyAll = useCallback(async () => {
-    setBusy(true);
-    try {
-      const n = await api.applyUpdates(inst.id);
-      await reload();
-      await check();
-      useStore.getState().toastMsg(t('Обновлено файлов: {n}', { n }));
-    } catch (e) {
-      useStore.getState().toastMsg(String(e));
-    } finally {
-      setBusy(false);
-    }
-  }, [inst.id, reload, check, t]);
-
   const run = useCallback(
     async (fn: () => Promise<void>) => {
       setBusy(true);
       try {
         await fn();
         await reload();
-        await check();
       } catch (e) {
         useStore.getState().toastMsg(String(e));
       } finally {
         setBusy(false);
       }
     },
-    [reload, check],
+    [reload],
   );
 
   const toBrowse = () =>
@@ -131,7 +95,6 @@ export function ContentTab({
 
   const q = cq.toLowerCase();
   const shown = items.filter((m) => (flt === 'all' || m.kind === flt) && m.name.toLowerCase().includes(q));
-  const updCount = Object.keys(updates).length;
 
   return (
     <>
@@ -195,11 +158,6 @@ export function ContentTab({
         <button className="btn pr" onClick={toBrowse}>
           {t('Добавить')}
         </button>
-        {updCount > 0 && (
-          <button className="btn" disabled={busy} onClick={() => void applyAll()}>
-            {t('Обновить ({n})', { n: updCount })}
-          </button>
-        )}
       </div>
       <div className="panel">
         {shown.length > 0 ? (
@@ -229,15 +187,7 @@ export function ContentTab({
                   <td>
                     <span className="lab">{t(KIND_LABEL[m.kind] ?? m.kind)}</span>
                   </td>
-                  <td className="hint">
-                    {m.version}
-                    {updates[m.file] && (
-                      <>
-                        {' → '}
-                        <b style={{ color: 'var(--pri)', fontWeight: 600 }}>{updates[m.file]}</b>
-                      </>
-                    )}
-                  </td>
+                  <td className="hint">{m.version}</td>
                   <td className="hint">{fmtBytes(m.sizeBytes)}</td>
                   <td>
                     <div className="row g8" style={{ justifyContent: 'flex-end' }}>

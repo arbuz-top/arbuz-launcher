@@ -15,10 +15,10 @@ use serde_json::Value;
 
 /// Ограничение промпта: длинные тексты не улучшают план, но жгут токены.
 const MAX_PROMPT: usize = 2000;
-/// Сколько модов максимум берём из плана.
-const MAX_MODS: usize = 40;
+/// Страховка от бесконечного списка от модели (лимит задаёт пользователь).
+const MAX_ITEMS: usize = 200;
 /// Сколько ресурс-паков и шейдеров максимум.
-const MAX_EXTRA: usize = 8;
+const MAX_EXTRA: usize = 12;
 /// Параллельных поисков по каталогу.
 const WORKERS: usize = 4;
 
@@ -29,7 +29,8 @@ const SYSTEM: &str = r#"Ты — опытный составитель сбор�
 Правила:
 - Бери только реально существующие проекты Modrinth или CurseForge.
 - query — английское название проекта так, как его ищут в каталоге: "JEI", "Sodium", "Iris Shaders", "Fabric API".
-- 12-40 модов. Обязательно добавляй нужные библиотеки: Fabric API, Cloth Config API, Architectury API, GeckoLib, YUNG's API и подобные.
+- Модов бери столько, сколько нужно сборке: обычно 15-60, без «воды» ради количества.
+- Обязательно добавляй нужные библиотеки: Fabric API, Cloth Config API, Architectury API, GeckoLib, YUNG's API и подобные.
 - Моды должны быть совместимы между собой и с выбранным загрузчиком.
 - shaders добавляй только если просят графику или шейдеры; resourcepacks — если просят текстурпаки.
 - Учитывай ограничения: «слабый ПК» — упор на оптимизацию (Sodium, Lithium, FerriteCore, ImmediatelyFast) и без тяжёлых модов.
@@ -113,35 +114,50 @@ fn norm(s: &str) -> String {
         .collect()
 }
 
-/// Выбирает наиболее подходящий результат поиска под запрос.
-fn pick(hits: &[CatalogItem], query: &str) -> Option<CatalogItem> {
-    let q = norm(query);
-    if q.is_empty() {
-        return hits.first().cloned();
+/// Оценка совпадения названия проекта с запросом: 2 — точное, 1 — частичное.
+fn score(title: &str, q: &str) -> u8 {
+    let t = norm(title);
+    if t.is_empty() || q.is_empty() {
+        return 0;
     }
-    let exact = hits.iter().find(|h| norm(&h.title) == q);
-    let partial = hits.iter().find(|h| {
-        let t = norm(&h.title);
-        !t.is_empty() && (t.contains(&q) || q.contains(&t))
-    });
-    exact.or(partial).or_else(|| hits.first()).cloned()
+    if t == q {
+        2
+    } else if t.contains(q) || q.contains(&t) {
+        1
+    } else {
+        0
+    }
 }
 
-async fn search_one(
-    state: &AppState,
-    kind: &str,
-    loader: &str,
-    mc: &str,
-    query: &str,
-) -> Option<CatalogItem> {
+/// Лучший результат среди источников: сначала точное название, затем частичное,
+/// иначе первый результат первого непустого источника (порядок = приоритет).
+fn choose(groups: Vec<Vec<CatalogItem>>, query: &str) -> Option<CatalogItem> {
+    let q = norm(query);
+    if q.is_empty() {
+        return groups.into_iter().flatten().next();
+    }
+    for g in &groups {
+        if let Some(h) = g.iter().find(|h| score(&h.title, &q) == 2) {
+            return Some(h.clone());
+        }
+    }
+    for g in &groups {
+        if let Some(h) = g.iter().find(|h| score(&h.title, &q) == 1) {
+            return Some(h.clone());
+        }
+    }
+    groups.into_iter().flatten().next()
+}
+
+fn args_for(kind: &str, loader: &str, mc: &str, query: &str, source: &str) -> SearchArgs {
     let loaders = if kind == "mod" && !loader.is_empty() {
         vec![loader.to_string()]
     } else {
         Vec::new()
     };
-    let base = SearchArgs {
-        source: "modrinth".into(),
-        kind: kind.into(),
+    SearchArgs {
+        source: source.to_string(),
+        kind: kind.to_string(),
         query: query.chars().take(120).collect(),
         loaders,
         mc_version: Some(mc.to_string()),
@@ -149,25 +165,52 @@ async fn search_one(
         offset: 0,
         sort: "relevance".into(),
         instance_id: None,
-    };
-
-    let mut hits = catalog::modrinth::search(&state.http, &base)
-        .await
-        .map(|r| r.hits)
-        .unwrap_or_default();
-
-    if hits.is_empty() {
-        let cf = SearchArgs {
-            source: "curseforge".into(),
-            ..base
-        };
-        hits = catalog::curseforge::search(state, &cf)
-            .await
-            .map(|r| r.hits)
-            .unwrap_or_default();
     }
+}
 
-    pick(&hits, query)
+/// Ищет проект с учётом приоритета: без источника — сразу в двух каталогах,
+/// с источником — сначала в нём, а если там пусто, то в другом.
+async fn search_one(
+    state: &AppState,
+    kind: &str,
+    loader: &str,
+    mc: &str,
+    query: &str,
+    source: Option<&str>,
+) -> Option<CatalogItem> {
+    let mr_args = args_for(kind, loader, mc, query, "modrinth");
+    let cf_args = args_for(kind, loader, mc, query, "curseforge");
+    let mr = catalog::modrinth::search(&state.http, &mr_args);
+    let cf = catalog::curseforge::search(state, &cf_args);
+
+    match source {
+        None => {
+            let (a, b) = tokio::join!(mr, cf);
+            choose(
+                vec![
+                    a.map(|r| r.hits).unwrap_or_default(),
+                    b.map(|r| r.hits).unwrap_or_default(),
+                ],
+                query,
+            )
+        }
+        Some("curseforge") => {
+            let first = cf.await.map(|r| r.hits).unwrap_or_default();
+            if !first.is_empty() {
+                return choose(vec![first], query);
+            }
+            let second = mr.await.map(|r| r.hits).unwrap_or_default();
+            choose(vec![second], query)
+        }
+        _ => {
+            let first = mr.await.map(|r| r.hits).unwrap_or_default();
+            if !first.is_empty() {
+                return choose(vec![first], query);
+            }
+            let second = cf.await.map(|r| r.hits).unwrap_or_default();
+            choose(vec![second], query)
+        }
+    }
 }
 
 /// Накопитель подбора: что уже взято и что не нашлось.
@@ -183,6 +226,7 @@ async fn resolve_many(
     kind: &str,
     loader: &str,
     mc: &str,
+    source: Option<&str>,
     raws: Vec<RawItem>,
     sink: &mut Sink,
 ) -> Vec<PlanItem> {
@@ -197,7 +241,23 @@ async fn resolve_many(
 
     let found: Vec<(RawItem, Option<CatalogItem>)> = stream::iter(raws)
         .map(move |r| async move {
-            let hit = search_one(state, kind, loader, mc, r.query.trim()).await;
+            let query = r.query.trim().to_string();
+            let hit = search_one(state, kind, loader, mc, &query, source).await;
+            // Проверяем, что у проекта правда есть файл под версию игры и
+            // загрузчик профиля: иначе ассистент притащит мод не для этой сборки.
+            let hit = match hit {
+                Some(h) => {
+                    let ok = catalog::has_file(state, &h.source, &h.id, kind, loader, mc)
+                        .await
+                        .unwrap_or(true);
+                    if ok {
+                        Some(h)
+                    } else {
+                        None
+                    }
+                }
+                None => None,
+            };
             (r, hit)
         })
         .buffered(WORKERS)
@@ -247,7 +307,13 @@ async fn resolve_mc(state: &AppState, explicit: Option<String>, ai: Option<Strin
     }
 }
 
-fn build_user(prompt: &str, lang: &str, mc: Option<&str>, loader: Option<&str>) -> String {
+fn build_user(
+    prompt: &str,
+    lang: &str,
+    mc: Option<&str>,
+    loader: Option<&str>,
+    limit: Option<usize>,
+) -> String {
     let mut s = String::with_capacity(prompt.len() + 600);
     s.push_str("Запрос игрока: ");
     s.push_str(prompt);
@@ -262,6 +328,12 @@ fn build_user(prompt: &str, lang: &str, mc: Option<&str>, loader: Option<&str>) 
             "Загрузчик задан: {l}. Поле loader не заполняй.\n"
         )),
         None => s.push_str("Загрузчик не задан — предложи подходящий в loader.\n"),
+    }
+    match limit {
+        Some(n) => s.push_str(&format!(
+            "Игрок просит примерно {n} модов: подбери близко к этому числу, но не больше.\n"
+        )),
+        None => s.push_str("Число модов не ограничено — бери столько, сколько нужно сборке.\n"),
     }
     s.push_str(
         "\nСоставь сборку под этот запрос и верни JSON по схеме. Только JSON, без пояснений.",
@@ -345,12 +417,19 @@ fn normalize(v: &mut Value) {
 }
 
 /// Составляет план сборки по промпту и сам подбирает проекты в каталоге.
+///
+/// `limit` — сколько модов максимум хочет игрок (`None` — без ограничения).
+/// `source` — приоритетный каталог; `None` — искать сразу в Modrinth и CurseForge.
+/// `model` — выбранная модель Zen; `None` или пусто — первая доступная.
 pub async fn plan(
     state: &AppState,
     prompt: &str,
     lang: &str,
     mc_version: Option<String>,
     loader: Option<String>,
+    limit: Option<u32>,
+    source: Option<String>,
+    model: Option<String>,
 ) -> Res<PackPlan> {
     let prompt = prompt.trim();
     if prompt.chars().count() < 4 {
@@ -358,15 +437,23 @@ pub async fn plan(
     }
     let prompt: String = prompt.chars().take(MAX_PROMPT).collect();
 
+    let limit = limit
+        .map(|n| (n.max(1) as usize).min(MAX_ITEMS))
+        .filter(|n| *n > 0);
+    let source = source
+        .as_deref()
+        .filter(|s| matches!(*s, "modrinth" | "curseforge"));
+
     let asked_loader = loader.as_deref().and_then(parse_loader);
     let user = build_user(
         &prompt,
         lang,
         mc_version.as_deref().filter(|v| !v.trim().is_empty()),
         asked_loader.map(|(_, slug)| slug),
+        limit,
     );
 
-    let (model, text) = ai::ask_text(SYSTEM, &user, 3200, 0.4).await?;
+    let (model, text) = ai::ask_text(SYSTEM, &user, 3200, 0.4, model.as_deref()).await?;
     let clean = ai::strip_fences(&text);
     let mut value = ai::extract_json(&clean)
         .ok_or_else(|| AppError::Msg("ИИ вернул ответ не по схеме, попробуйте ещё раз".into()))?;
@@ -382,16 +469,20 @@ pub async fn plan(
     let mut sink = Sink::default();
 
     let mut mods_raw = raw.mods;
-    mods_raw.truncate(MAX_MODS);
-    let mods = resolve_many(state, "mod", loader_slug, &mc, mods_raw, &mut sink).await;
+    mods_raw.truncate(limit.unwrap_or(MAX_ITEMS));
+    let mut mods = resolve_many(state, "mod", loader_slug, &mc, source, mods_raw, &mut sink).await;
+    if let Some(n) = limit {
+        mods.truncate(n);
+    }
 
     let mut rp_raw = raw.resourcepacks;
     rp_raw.truncate(MAX_EXTRA);
-    let resourcepacks = resolve_many(state, "rp", loader_slug, &mc, rp_raw, &mut sink).await;
+    let resourcepacks =
+        resolve_many(state, "rp", loader_slug, &mc, source, rp_raw, &mut sink).await;
 
     let mut sh_raw = raw.shaders;
     sh_raw.truncate(MAX_EXTRA);
-    let shaders = resolve_many(state, "sh", loader_slug, &mc, sh_raw, &mut sink).await;
+    let shaders = resolve_many(state, "sh", loader_slug, &mc, source, sh_raw, &mut sink).await;
     let skipped = sink.skipped;
 
     if mods.is_empty() {
@@ -454,15 +545,23 @@ mod tests {
     }
 
     #[test]
-    fn pick_prefers_exact_title() {
+    fn choose_prefers_exact_title() {
         let hits = vec![hit("1", "Sodium Extra"), hit("2", "Sodium")];
-        assert_eq!(pick(&hits, "Sodium").unwrap().id, "2");
+        assert_eq!(choose(vec![hits], "Sodium").unwrap().id, "2");
     }
 
     #[test]
-    fn pick_falls_back_to_first() {
-        let hits = vec![hit("1", "Something Else")];
-        assert_eq!(pick(&hits, "нечто").unwrap().id, "1");
+    fn choose_falls_back_to_first_source() {
+        let mr = vec![hit("1", "Something Else")];
+        let cf = vec![hit("2", "Another Thing")];
+        assert_eq!(choose(vec![mr, cf], "нечто").unwrap().id, "1");
+    }
+
+    #[test]
+    fn choose_finds_exact_title_in_second_source() {
+        let mr = vec![hit("1", "Something Else")];
+        let cf = vec![hit("2", "Sodium")];
+        assert_eq!(choose(vec![mr, cf], "Sodium").unwrap().id, "2");
     }
 
     #[test]

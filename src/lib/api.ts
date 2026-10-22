@@ -1,10 +1,10 @@
 // Типы данных и обёртки над Tauri-командами
 import { invoke } from '@tauri-apps/api/core';
-import { dataDir, join } from '@tauri-apps/api/path';
 import type { CustomTheme } from './theme';
 
-/** Корень данных лаунчера: <data_dir>/Arbuz Launcher (Windows: %APPDATA%\Arbuz Launcher). */
-export const dataRoot = async (): Promise<string> => join(await dataDir(), 'Arbuz Launcher');
+/** Корень данных лаунчера: папка `arbuz-launcher` рядом с лаунчером
+ *  (или в профиле пользователя) — путь считает Rust, чтобы он совпадал. */
+export const dataRoot = (): Promise<string> => invoke<string>('data_dir');
 
 export type Loader = 'vanilla' | 'fabric' | 'forge' | 'neoforge' | 'quilt';
 export type AccountKind = 'microsoft' | 'elyby' | 'littleskin' | 'offline';
@@ -33,6 +33,26 @@ export interface Instance {
   playtimeDays: Record<string, number>;
   lastPlayed: number | null;
   created: number;
+  /** Сборка, из которой создан профиль (для обновлений); у старых профилей нет. */
+  pack?: PackRef | null;
+  /** Своя папка игры (`.minecraft`); null — `instances/<id>/minecraft`. */
+  gameDir?: string | null;
+}
+
+/** Источник сборки профиля. */
+export interface PackRef {
+  source: string;
+  projectId: string;
+  versionId: string;
+  versionName: string;
+}
+
+/** Доступное обновление сборки. */
+export interface PackUpdate {
+  versionId: string;
+  versionName: string;
+  changelog: string;
+  date: string;
 }
 
 export interface Account {
@@ -40,6 +60,32 @@ export interface Account {
   kind: AccountKind;
   name: string;
   note: string;
+}
+
+/** Игрок в P2P-комнате. `slot` 0 — хозяин комнаты. */
+export interface RoomPlayer {
+  slot: number;
+  name: string;
+}
+
+/** Состояние комнаты: одинаковое у всех, кроме `me`. */
+export interface Room {
+  players: RoomPlayer[];
+  /** Слот владельца: может выгонять и менять код. */
+  admin: number;
+  /** Мой слот (0 — я хозяин). */
+  me: number;
+  kicked: boolean;
+  host: string;
+}
+
+/** Новый релиз лаунчера на GitHub. */
+export interface LauncherUpdate {
+  version: string;
+  current: string;
+  page: string;
+  download: string;
+  notes: string;
 }
 
 export interface AnimConfig {
@@ -76,13 +122,22 @@ export interface Config {
   defaultJava: number;
   closeOnLaunch: boolean;
   showConsole: boolean;
-  checkUpdates: boolean;
+  /** Проверять обновления лаунчера на GitHub при запуске. */
+  checkLauncherUpdates: boolean;
+  /** Закрытие окна прячет лаунчер в трей. */
+  closeToTray: boolean;
   hideEmpty: boolean;
   modIsolationEnabled: boolean;
   modIsolationLevel: string;
   curseforgeApiKey: string;
   /** Экспериментально: ИИ-ассистент сборок по промпту. */
   aiBuilder: boolean;
+  /** Лимит модов для ИИ-сборки: 0 — без ограничения. */
+  aiPackLimit: number;
+  /** Приоритетный каталог ИИ-сборки: пусто — оба сразу. */
+  aiPackSource: string;
+  /** Модель ИИ-сборки: пусто — первая доступная бесплатная. */
+  aiPackModel: string;
   anim: AnimConfig;
   custom: CustomTheme;
   moves: Record<string, [number, number]>;
@@ -255,6 +310,28 @@ export interface PackPlan {
   skipped: string[];
 }
 
+/** Доступ к игре по сети: проброшенный порт и внешний адрес. */
+export interface LanShare {
+  port: number;
+  /** Внешний адрес; пусто, если роутер его не сообщил. */
+  host: string;
+  /** Адрес внутри сети: `192.168.0.5:25565`. */
+  local: string;
+}
+
+/** P2P-канал: код для друга и адрес для Minecraft у подключающегося. */
+export interface P2pShare {
+  /** Код, который передаём другу. */
+  code: string;
+  /** Адрес для Minecraft: `127.0.0.1:25565`. */
+  local: string;
+  port: number;
+  /** Мы принимаем (`true`) или подключаемся (`false`). */
+  hosting: boolean;
+  /** Комната создана, но мир ещё не открыт для сети. */
+  waiting: boolean;
+}
+
 /** Профиль Modrinth App, доступный для импорта. */
 export interface ModrinthProfile {
   name: string;
@@ -368,6 +445,8 @@ export interface DeviceCode {
 export const api = {
   getConfig: () => invoke<Config>('get_config'),
   setConfig: (cfg: Config) => invoke<void>('set_config', { cfg }),
+  exportSettings: (path: string) => invoke<void>('export_settings', { path }),
+  importSettings: (path: string) => invoke<Config>('import_settings', { path }),
 
   listInstances: () => invoke<Instance[]>('list_instances'),
   createInstance: (name: string, mcVersion: string | null, loader: Loader) =>
@@ -380,6 +459,9 @@ export const api = {
   setInstanceIconUrl: (id: string, url: string) =>
     invoke<Instance>('set_instance_icon_url', { id, url }),
   clearInstanceIcon: (id: string) => invoke<Instance>('clear_instance_icon', { id }),
+  /** Своя папка игры: null — вернуть папку профиля. */
+  setGameDir: (id: string, path: string | null) =>
+    invoke<Instance>('set_instance_game_dir', { id, path }),
 
   openInstanceFolder: (id: string) => invoke<void>('open_instance_folder', { id }),
 
@@ -406,7 +488,8 @@ export const api = {
   msCancel: () => invoke<void>('ms_cancel'),
   setActiveAccount: (id: string) => invoke<void>('set_active_account', { id }),
   removeAccount: (id: string) => invoke<void>('remove_account', { id }),
-  launchInstance: (id: string, world: string | null) => invoke<void>('launch_instance', { id, world }),
+  launchInstance: (id: string, world: string | null, server: string | null = null) =>
+    invoke<void>('launch_instance', { id, world, server }),
   stopInstance: (id: string) => invoke<void>('stop_instance', { id }),
 
   listContent: (id: string) => invoke<ContentItem[]>('list_content', { id }),
@@ -426,7 +509,10 @@ export const api = {
   installCatalogItem: (instanceId: string, source: string, projectId: string, kind: string, world: string | null) =>
     invoke<void>('install_catalog_item', { instanceId, source, projectId, kind, world }),
   checkUpdates: (id: string) => invoke<UpdateInfo[]>('check_updates', { id }),
-  applyUpdates: (id: string) => invoke<number>('apply_updates', { id }),
+  applyUpdates: (id: string, files: string[]) => invoke<number>('apply_updates', { id, files }),
+  packUpdate: (id: string) => invoke<PackUpdate | null>('pack_update', { id }),
+  applyPackUpdate: (id: string, versionId: string) =>
+    invoke<Instance>('apply_pack_update', { id, versionId }),
 
   installModpack: (source: string, projectId: string, versionId: string | null) =>
     invoke<Instance>('install_modpack', { source, projectId, versionId }),
@@ -440,8 +526,16 @@ export const api = {
   diagnoseCrash: (id: string) => invoke<CrashDiagnosis>('diagnose_crash', { id }),
   aiDiagnoseCrash: (id: string, lang: string, console: string) =>
     invoke<AiDiagnosis>('ai_diagnose_crash', { id, lang, console }),
-  aiPackPlan: (prompt: string, lang: string, mcVersion: string | null, loader: string | null) =>
-    invoke<PackPlan>('ai_pack_plan', { prompt, lang, mcVersion, loader }),
+  aiPackPlan: (
+    prompt: string,
+    lang: string,
+    mcVersion: string | null,
+    loader: string | null,
+    limit: number | null,
+    source: string | null,
+    model: string | null,
+  ) => invoke<PackPlan>('ai_pack_plan', { prompt, lang, mcVersion, loader, limit, source, model }),
+  aiModels: () => invoke<string[]>('ai_models'),
   openCrashReports: (id: string) => invoke<void>('open_crash_reports', { id }),
 
   packInfo: (id: string) => invoke<PackInfo>('pack_info', { id }),
@@ -465,4 +559,26 @@ export const api = {
   openDataFolder: () => invoke<void>('open_data_folder'),
   setHomeWallpaper: (sourcePath: string) => invoke<string>('set_home_wallpaper', { sourcePath }),
   clearHomeWallpaper: () => invoke<void>('clear_home_wallpaper'),
+
+  lanPort: (id: string) => invoke<number | null>('lan_port', { id }),
+  netShare: (port: number) => invoke<LanShare>('net_share', { port }),
+  netUnshare: () => invoke<void>('net_unshare'),
+  netActive: () => invoke<LanShare | null>('net_active'),
+  p2pHost: (port: number, name: string) => invoke<P2pShare>('p2p_host', { port, name }),
+  /** Комната заранее: код можно отдать друзьям до запуска игры. */
+  p2pRoom: (name: string) => invoke<P2pShare>('p2p_room', { name }),
+  p2pJoin: (code: string, name: string) => invoke<P2pShare>('p2p_join', { code, name }),
+  /** Кто в комнате и кто владелец. */
+  p2pRoomState: () => invoke<Room | null>('p2p_room_state'),
+  /** Выгнать игрока (владелец комнаты). */
+  p2pKick: (slot: number) => invoke<void>('p2p_kick', { slot }),
+  /** Передать права владельца (хозяин комнаты). */
+  p2pAdmin: (slot: number) => invoke<void>('p2p_admin', { slot }),
+  /** Новый код: старый перестаёт пускать. */
+  p2pNewCode: () => invoke<P2pShare>('p2p_new_code'),
+  /** Одноразовое сообщение: исключили из комнаты / связь потерялась. */
+  p2pNotice: () => invoke<string | null>('p2p_notice'),
+  p2pStop: () => invoke<void>('p2p_stop'),
+  p2pActive: () => invoke<P2pShare | null>('p2p_active'),
+  checkLauncherUpdate: () => invoke<LauncherUpdate | null>('check_launcher_update'),
 };

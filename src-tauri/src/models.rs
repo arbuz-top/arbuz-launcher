@@ -24,10 +24,24 @@ impl Loader {
     }
 }
 
+/// Откуда поставлена сборка — чтобы искать её обновления в каталоге.
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct PackRef {
+    /// modrinth | curseforge
+    pub source: String,
+    pub project_id: String,
+    pub version_id: String,
+    #[serde(default)]
+    pub version_name: String,
+    /// Файлы, скачанные сборкой (пути от gameDir) — чтобы убрать лишние при обновлении.
+    #[serde(default)]
+    pub files: Vec<String>,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct Instance {
-    pub id: String,
+pub struct Instance {    pub id: String,
     pub name: String,
     pub mc_version: String,
     pub loader: Loader,
@@ -52,6 +66,12 @@ pub struct Instance {
     pub playtime_days: BTreeMap<String, u64>, // "2026-10-14" -> секунды
     pub last_played: Option<i64>,             // unix sec
     pub created: i64,
+    /// Сборка, из которой создан профиль (для обновлений). У старых профилей нет.
+    #[serde(default)]
+    pub pack: Option<PackRef>,
+    /// Своя папка игры (`.minecraft`); `None` — `instances/<id>/minecraft`.
+    #[serde(default)]
+    pub game_dir: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
@@ -310,7 +330,7 @@ where
 pub struct Config {
     pub accent: String, // "#5fb339"
     pub dark: bool,
-    pub style: String, // "flat" | "monet" | "amoled" | "catppuccin" | "custom"
+    pub style: String, // "flat" | "monet" | "amoled" | "catppuccin" | "dracula" | "custom"
     pub lang: String, // "ru" | "en" | "pl" | "uk" | "eo"
     /// Показывать выбор тем (экспериментально). По умолчанию только flat.
     pub experimental_themes: bool,
@@ -324,7 +344,10 @@ pub struct Config {
     pub default_java: u8,
     pub close_on_launch: bool, // сворачивать лаунчер при запуске игры
     pub show_console: bool,
-    pub check_updates: bool,
+    /// Проверять обновления самого лаунчера на GitHub.
+    pub check_launcher_updates: bool,
+    /// Закрытие окна прячет лаунчер в трей, а не выходит.
+    pub close_to_tray: bool,
     pub hide_empty: bool,
     /// Экспериментально: включена ли защита при запуске игры.
     pub mod_isolation_enabled: bool,
@@ -333,6 +356,12 @@ pub struct Config {
     pub curseforge_api_key: String,
     /// Экспериментально: ИИ-ассистент сборок по промпту.
     pub ai_builder: bool,
+    /// Лимит модов для ИИ-сборки: 0 — без ограничения.
+    pub ai_pack_limit: u32,
+    /// Приоритетный каталог ИИ-сборки: пусто — оба, "modrinth" | "curseforge".
+    pub ai_pack_source: String,
+    /// Модель ИИ-сборки: пусто — первая доступная бесплатная.
+    pub ai_pack_model: String,
     #[serde(default, deserialize_with = "de_anim")]
     pub anim: AnimConfig,
     #[serde(default, deserialize_with = "de_custom")]
@@ -356,12 +385,16 @@ impl Default for Config {
             default_java: 21,
             close_on_launch: false,
             show_console: true,
-            check_updates: true,
+            check_launcher_updates: true,
+            close_to_tray: true,
             hide_empty: false,
             mod_isolation_enabled: false,
             mod_isolation_level: "min".into(),
             curseforge_api_key: String::new(),
             ai_builder: true,
+            ai_pack_limit: 0,
+            ai_pack_source: String::new(),
+            ai_pack_model: String::new(),
             anim: AnimConfig::default(),
             custom: CustomTheme::default(),
             moves: BTreeMap::new(),
@@ -383,6 +416,19 @@ impl Config {
         }
         if !matches!(self.mod_isolation_level.as_str(), "min" | "std" | "strict") {
             self.mod_isolation_level = "min".into();
+        }
+        self.ai_pack_limit = self.ai_pack_limit.min(200);
+        if !matches!(self.ai_pack_source.as_str(), "" | "modrinth" | "curseforge") {
+            self.ai_pack_source = String::new();
+        }
+        self.ai_pack_model = self.ai_pack_model.trim().to_string();
+        if self.ai_pack_model.len() > 80
+            || !self
+                .ai_pack_model
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || "-_./".contains(c))
+        {
+            self.ai_pack_model.clear();
         }
         self.moves.retain(|k, v| {
             !k.is_empty() && k.len() <= 300 && v[0].is_finite() && v[1].is_finite()

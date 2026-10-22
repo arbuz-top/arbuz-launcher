@@ -164,6 +164,12 @@ fn order(models: &[String], ru: bool) -> Vec<String> {
     out
 }
 
+/// Список бесплатных моделей в порядке предпочтения — для выбора в интерфейсе.
+pub(crate) async fn models() -> Res<Vec<String>> {
+    let (list, ru) = catalog().await?;
+    Ok(order(&list, ru))
+}
+
 async fn catalog() -> Res<(Vec<String>, bool)> {
     if let Ok(g) = CATALOG.lock() {
         if let Some(c) = g.as_ref() {
@@ -578,9 +584,17 @@ pub(crate) async fn ask_text(
     user: &str,
     max_tokens: u32,
     temperature: f64,
+    prefer: Option<&str>,
 ) -> Res<(String, String)> {
     let (models, ru) = catalog().await?;
-    let ordered = order(&models, ru);
+    let mut ordered = order(&models, ru);
+    // Выбранную в интерфейсе модель пробуем первой, если она ещё доступна.
+    if let Some(pick) = prefer.map(str::trim).filter(|p| !p.is_empty()) {
+        if let Some(pos) = ordered.iter().position(|m| m == pick) {
+            let m = ordered.remove(pos);
+            ordered.insert(0, m);
+        }
+    }
     let mut errors: Vec<String> = Vec::new();
 
     for model in ordered.iter().take(MAX_TRIES) {

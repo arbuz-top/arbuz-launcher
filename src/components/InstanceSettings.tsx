@@ -16,8 +16,10 @@ import { useT } from '../lib/i18n';
 import { VERSION_GROUPS } from '../lib/versions';
 import { Avatar, IUp, RamSlider, Seg, Toggle } from './Controls';
 import { ContentTab } from './ContentTab';
+import { ConsoleTab } from './ConsoleTab';
 import { PackTab } from './PackTab';
 import { ScreenshotsTab } from './ScreenshotsTab';
+import { UpdatesTab } from './UpdatesTab';
 import { WorldsTab } from './WorldsTab';
 
 const SECS: [Sec, string][] = [
@@ -26,7 +28,9 @@ const SECS: [Sec, string][] = [
   ['w', 'Окно и запуск'],
   ['c', 'Контент'],
   ['p', 'Сборка'],
+  ['u', 'Обновления'],
   ['m', 'Миры'],
+  ['v', 'Консоль'],
   ['s', 'Скриншоты'],
 ];
 
@@ -88,6 +92,38 @@ export function InstanceSettings({ inst }: { inst: Instance }) {
   const clearIcon = async () => {
     try {
       applyInstance(await api.clearInstanceIcon(inst.id));
+    } catch (e) {
+      s.toastMsg(String(e));
+    }
+  };
+
+  /** Путь к Java вручную: выбор файла вместо автопоиска. */
+  const pickJava = async () => {
+    try {
+      const p = await open({ multiple: false, directory: false });
+      if (typeof p !== 'string') return;
+      saveInstance({ ...inst, javaPath: p });
+    } catch (e) {
+      s.toastMsg(String(e));
+    }
+  };
+
+  /** Своя папка игры: существующий .minecraft или пустая папка. */
+  const pickGameDir = async () => {
+    try {
+      const p = await open({ multiple: false, directory: true });
+      if (typeof p !== 'string') return;
+      applyInstance(await api.setGameDir(inst.id, p));
+      s.toastMsg(t('Папка игры изменена'));
+    } catch (e) {
+      s.toastMsg(String(e));
+    }
+  };
+
+  const resetGameDir = async () => {
+    try {
+      applyInstance(await api.setGameDir(inst.id, null));
+      s.toastMsg(t('Папка игры снова в профиле'));
     } catch (e) {
       s.toastMsg(String(e));
     }
@@ -233,6 +269,26 @@ export function InstanceSettings({ inst }: { inst: Instance }) {
           </div>
         </div>
 
+        <label className="l">{t('Папка игры')}</label>
+        <div className="panel" style={{ padding: 14 }}>
+          <div className="hint" style={{ fontFamily: 'ui-monospace,monospace', wordBreak: 'break-all' }}>
+            {inst.gameDir || `instances/${inst.id}/minecraft/`}
+          </div>
+          <div className="row g8" style={{ marginTop: 8, flexWrap: 'wrap' }}>
+            <button className="btn sm" onClick={() => void pickGameDir()}>
+              {t('Выбрать папку')}
+            </button>
+            {inst.gameDir && (
+              <button className="btn sm" onClick={() => void resetGameDir()}>
+                {t('Вернуть папку профиля')}
+              </button>
+            )}
+          </div>
+          <div className="hint" style={{ marginTop: 8 }}>
+            {t('Моды, миры, скриншоты и конфиги хранятся в этой папке. Подойдёт и существующий .minecraft — его содержимое останется на месте.')}
+          </div>
+        </div>
+
         <div style={{ marginTop: 18 }}>
           <button className="btn" onClick={() => void remove()}>
             {t('Удалить профиль')}
@@ -268,6 +324,16 @@ export function InstanceSettings({ inst }: { inst: Instance }) {
           <div className="hint" style={{ marginTop: 4 }}>
             {t('В системе доступно {x}. Для сборок обычно хватает 4–8 ГБ.', { x: gb(s.systemRamMb) })}
           </div>
+          {s.systemRamMb > 0 && inst.ramMaxMb + 1024 > s.systemRamMb && (
+            <div className="hint" style={{ marginTop: 4, color: 'var(--err,#d9503f)' }}>
+              {t('Столько ОЗУ система не отдаст: оставьте ей хотя бы 1 ГБ, иначе игра вылетит при запуске.')}
+            </div>
+          )}
+          {inst.ramMaxMb < 2048 && (
+            <div className="hint" style={{ marginTop: 4, color: '#e0a13f' }}>
+              {t('Для сборок с модами меньше 2 ГБ почти всегда мало — начнутся лаги и вылеты.')}
+            </div>
+          )}
         </div>
 
         <div className="two">
@@ -287,6 +353,19 @@ export function InstanceSettings({ inst }: { inst: Instance }) {
               value={inst.javaPath ?? ''}
               onChange={(e) => upd({ javaPath: e.target.value || null })}
             />
+            <div className="row g8" style={{ marginTop: 8 }}>
+              <button className="btn sm" onClick={() => void pickJava()}>
+                {t('Выбрать файл')}
+              </button>
+              {inst.javaPath && (
+                <button className="btn sm" onClick={() => upd({ javaPath: null })}>
+                  {t('Сбросить')}
+                </button>
+              )}
+            </div>
+            <div className="hint" style={{ marginTop: 6 }}>
+              {t('Можно указать java/java.exe вручную — автопоиск тогда не используется.')}
+            </div>
           </div>
         </div>
 
@@ -346,8 +425,12 @@ export function InstanceSettings({ inst }: { inst: Instance }) {
     );
   } else if (s.sec === 'p') {
     body = <PackTab inst={inst} initialMod={cfgMod} />;
+  } else if (s.sec === 'u') {
+    body = <UpdatesTab inst={inst} />;
   } else if (s.sec === 'm') {
     body = <WorldsTab inst={inst} />;
+  } else if (s.sec === 'v') {
+    body = <ConsoleTab inst={inst} />;
   } else {
     body = <ScreenshotsTab inst={inst} />;
   }
@@ -369,7 +452,7 @@ export function InstanceSettings({ inst }: { inst: Instance }) {
           </div>
         ))}
       </div>
-      <div style={{ flex: 1, minWidth: 0, maxWidth: ['c', 'p', 'm', 's'].includes(s.sec) ? 'none' : 640 }}>{body}</div>
+      <div style={{ flex: 1, minWidth: 0, maxWidth: ['c', 'p', 'm', 's', 'v'].includes(s.sec) ? 'none' : 640 }}>{body}</div>
     </div>
   );
 }

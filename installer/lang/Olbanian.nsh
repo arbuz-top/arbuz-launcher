@@ -16,7 +16,7 @@
 !ifdef MUI_LICENSEPAGE
   ${LangFileString} MUI_TEXT_LICENSE_TITLE "Лицензионное соглашение"
   ${LangFileString} MUI_TEXT_LICENSE_SUBTITLE "Передъ установкой $(^NameDA) ознакомьтесь с лицензионнымъ соглашениемъ."
-  ${LangFileString} MUI_INNERTEXT_LICENSE_BOTTOM "Если вы принимаете условийа соглашенийа, нажмите кнопку $\$\"Принимаю$\$\". Чтобы установить программу, необходимо принйать соглашение."
+  ${LangFileString} MUI_INNERTEXT_LICENSE_BOTTOM "Если вы принимаете условийа соглашенийа, нажмите кнопку $\"Принимаю$\". Чтобы установить программу, необходимо принйать соглашение."
   ${LangFileString} MUI_INNERTEXT_LICENSE_BOTTOM_CHECKBOX "Если вы принимаете условийа соглашенийа, установите флажокъ ниже. Чтобы установить программу, необходимо принйать соглашение. $_CLICK"
   ${LangFileString} MUI_INNERTEXT_LICENSE_BOTTOM_RADIOBUTTONS "Если вы принимаете условийа соглашенийа, выберите первый вариантъ из предложенныхъ ниже. Чтобы установить программу, необходимо принйать соглашение. $_CLICK"
 !endif
@@ -24,13 +24,13 @@
 !ifdef MUI_UNLICENSEPAGE
   ${LangFileString} MUI_UNTEXT_LICENSE_TITLE "Лицензионное соглашение"
   ${LangFileString} MUI_UNTEXT_LICENSE_SUBTITLE "Передъ удалениемъ $(^NameDA) ознакомьтесь с лицензионнымъ соглашениемъ."
-  ${LangFileString} MUI_UNINNERTEXT_LICENSE_BOTTOM "Если вы принимаете условийа соглашенийа, нажмите кнопку $\$\"Принимаю$\$\". Длйа удаленийа необходимо принйать соглашение. $_CLICK"
+  ${LangFileString} MUI_UNINNERTEXT_LICENSE_BOTTOM "Если вы принимаете условийа соглашенийа, нажмите кнопку $\"Принимаю$\". Длйа удаленийа необходимо принйать соглашение. $_CLICK"
   ${LangFileString} MUI_UNINNERTEXT_LICENSE_BOTTOM_CHECKBOX "Если вы принимаете условийа соглашенийа, установите флажокъ ниже. Длйа удаленийа необходимо принйать соглашение. $_CLICK"
   ${LangFileString} MUI_UNINNERTEXT_LICENSE_BOTTOM_RADIOBUTTONS "Если вы принимаете условийа соглашенийа, выберите первый вариантъ из предложенныхъ ниже. Длйа удаленийа необходимо принйать соглашение. $_CLICK"
 !endif
 
 !ifdef MUI_LICENSEPAGE | MUI_UNLICENSEPAGE
-  ${LangFileString} MUI_INNERTEXT_LICENSE_TOP "Длйа перемещенийа по тексту используйте клавишы $\$\"PageUp$\$\" и $\$\"PageDown$\$\"."
+  ${LangFileString} MUI_INNERTEXT_LICENSE_TOP "Длйа перемещенийа по тексту используйте клавишы $\"PageUp$\" и $\"PageDown$\"."
 !endif
 
 !ifdef MUI_COMPONENTSPAGE
@@ -82,13 +82,13 @@
 
 !ifdef MUI_FINISHPAGE
   ${LangFileString} MUI_TEXT_FINISH_INFO_TITLE "Завершение работы мастера установки $(^NameDA)"
-  ${LangFileString} MUI_TEXT_FINISH_INFO_TEXT "Установка $(^NameDA) выполнена.$\r$\n$\r$\nНажмите кнопку $\$\"Готово$\$\" длйа выхода из программы установки."
+  ${LangFileString} MUI_TEXT_FINISH_INFO_TEXT "Установка $(^NameDA) выполнена.$\r$\n$\r$\nНажмите кнопку $\"Готово$\" длйа выхода из программы установки."
   ${LangFileString} MUI_TEXT_FINISH_INFO_REBOOT "Длйа завершенийа установки $(^NameDA) необходимо перезагрузить компьютеръ. Хотите сделать это сейчасъ?"
 !endif
 
 !ifdef MUI_UNFINISHPAGE
   ${LangFileString} MUI_UNTEXT_FINISH_INFO_TITLE "Завершение работы мастера удаленийа $(^NameDA)"
-  ${LangFileString} MUI_UNTEXT_FINISH_INFO_TEXT "Программа $(^NameDA) удалена из вашего компьютера.$\r$\n$\r$\nНажмите кнопку $\$\"Готово$\$\"длйа выхода из программы удаленийа."
+  ${LangFileString} MUI_UNTEXT_FINISH_INFO_TEXT "Программа $(^NameDA) удалена из вашего компьютера.$\r$\n$\r$\nНажмите кнопку $\"Готово$\"длйа выхода из программы удаленийа."
   ${LangFileString} MUI_UNTEXT_FINISH_INFO_REBOOT "Длйа завершенийа удаленийа $(^NameDA) нужно перезагрузить компьютеръ. Хотите сделать это сейчасъ?"
 !endif
 
@@ -101,9 +101,9 @@
 !endif
 
 !ifdef MUI_STARTMENUPAGE
-  ${LangFileString} MUI_TEXT_STARTMENU_TITLE "Папка в меню $\$\"Пускъ$\$\""
-  ${LangFileString} MUI_TEXT_STARTMENU_SUBTITLE "Выберите папку в меню $\$\"Пускъ$\$\" длйа размещенийа йарлыковъ программы."
-  ${LangFileString} MUI_INNERTEXT_STARTMENU_TOP "Выберите папку в меню $\$\"Пускъ$\$\", куда будутъ помещены йарлыки программы. Вы также можете ввести другое имйа папки."
+  ${LangFileString} MUI_TEXT_STARTMENU_TITLE "Папка в меню $\"Пускъ$\""
+  ${LangFileString} MUI_TEXT_STARTMENU_SUBTITLE "Выберите папку в меню $\"Пускъ$\" длйа размещенийа йарлыковъ программы."
+  ${LangFileString} MUI_INNERTEXT_STARTMENU_TOP "Выберите папку в меню $\"Пускъ$\", куда будутъ помещены йарлыки программы. Вы также можете ввести другое имйа папки."
   ${LangFileString} MUI_INNERTEXT_STARTMENU_CHECKBOX "Не создавать йарлыки"
 !endif
 

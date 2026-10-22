@@ -6,6 +6,7 @@ import { api, type CatalogItem } from '../lib/api';
 import { useT } from '../lib/i18n';
 import { BUILTIN_WALLPAPERS, builtinWallpaper } from '../lib/builtin';
 import { MaterialIcon } from '../lib/material-icons';
+import { Icon } from '../lib/nav-icons';
 import { monetLike } from '../lib/theme';
 import { curInstance, useStore } from '../store';
 
@@ -79,9 +80,7 @@ export function Home() {
             {monet ? (
               <MaterialIcon name="local_fire_department" size={18} />
             ) : (
-              <svg width="15" height="15" viewBox="0 -2.5 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" style={{ display: 'block', flex: 'none' }} aria-hidden="true">
-                <path d="M12 3c1 3 4 4.5 4 9a4 4 0 0 1-8 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 0-8z" />
-              </svg>
+              <Icon name="popular-modpacks" size={18} />
             )}
             {t('Популярные сборки').toUpperCase()}
           </div>

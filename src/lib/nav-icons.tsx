@@ -21,6 +21,14 @@ const PATHS: Record<string, string[]> = {
   'popular-modpacks': [
     'M13 16h2v4h2v2H7v-2h2v-4h2v-2h2v2Zm-6 4H5v-2h2v2Zm12 0h-2v-2h2v2ZM5 18H3v-8h2v8Zm16 0h-2v-6h2v6Zm-6-6h-2v-2h2v2Zm4 0h-2v-2h2v2ZM7 10H5V8h2v2Zm6 0h-2V6h2v4Zm4 0h-2V8h2v2ZM9 8H7V6h2v2Zm2-2H9V2h2v4Z',
   ],
+  coop: [
+    'M11 22H2v-9h9v9Zm9 0h-5v-2h5v2ZM4 20h5v-5H4v5Zm11 0h-2v-5h2v5Zm7 0h-2v-5h2v5Zm-2-5h-5v-2h5v2ZM9 9h6V7h2v4H7V7h2v2Zm2-2H9V4h2v3Zm4 0h-2V4h2v3Zm-2-3h-2V2h2v2Z',
+  ],
+  server: [
+    'M3 4h18v2H3V4Zm0 6h18v2H3v-2Zm0 6h18v2H3v-2Z',
+    'M5 7h4v2H5V7Zm0 6h4v2H5v-2Zm0 6h4v2H5v-2Z',
+    'M3 6h1v12H3V6Z',
+  ],
 };
 
 export type IconName = keyof typeof PATHS;

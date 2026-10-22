@@ -23,6 +23,31 @@ pub(crate) fn content_progress_id(instance_id: &str) -> String {
     format!("content:{instance_id}")
 }
 
+/// Ресурс-паки и шейдеры не привязаны к версии игры: их можно ставить на любой
+/// профиль (текстуры для 1.12.2 работают и на 1.20.1).
+pub fn any_version(kind: &str) -> bool {
+    kind == "rp" || kind == "sh"
+}
+
+/// Есть ли у проекта файл под профиль (версия игры + загрузчик).
+///
+/// `None` — проверить не удалось (сеть, чужой ответ): вызывающий решает сам.
+pub async fn has_file(
+    state: &AppState,
+    source: &str,
+    project_id: &str,
+    kind: &str,
+    loader: &str,
+    mc: &str,
+) -> Option<bool> {
+    let res = match source {
+        "modrinth" => modrinth::has_file(&state.http, project_id, kind, loader, mc).await,
+        "curseforge" => curseforge::has_file(state, project_id, kind, loader, mc).await,
+        _ => return None,
+    };
+    res.ok()
+}
+
 #[derive(Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchArgs {
@@ -328,8 +353,14 @@ pub async fn check_updates(state: &AppState, id: &str) -> Res<Vec<UpdateInfo>> {
         .collect())
 }
 
-/// Скачивает все найденные обновления, удаляет старые файлы, правит content.json.
-pub async fn apply_updates(app: &AppHandle, state: &AppState, id: &str) -> Res<u32> {
+/// Скачивает найденные обновления, удаляет старые файлы, правит content.json.
+/// `only` — какие файлы обновлять; пустой список значит «все найденные».
+pub async fn apply_updates(
+    app: &AppHandle,
+    state: &AppState,
+    id: &str,
+    only: Vec<String>,
+) -> Res<u32> {
     let inst: Instance = store::read_instance(id).await?;
     let mut meta = content::load_meta(id).await;
     let found = modrinth::resolve_updates(state, &inst, &meta).await?;
@@ -340,6 +371,9 @@ pub async fn apply_updates(app: &AppHandle, state: &AppState, id: &str) -> Res<u
     let game = crate::paths::instance_minecraft_dir(id);
     let mut n = 0u32;
     for (file, new) in found {
+        if !only.is_empty() && !only.iter().any(|f| *f == file) {
+            continue;
+        }
         let Some(entry) = meta.files.get(&file).cloned() else {
             continue;
         };

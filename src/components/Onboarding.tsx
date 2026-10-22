@@ -8,21 +8,12 @@ import { convertFileSrc } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { api, type Config } from '../lib/api';
 import { onProgress } from '../lib/events';
-import { LANGS, normLang, useT } from '../lib/i18n';
+import { LANG_EN, LANGS, normLang, useT } from '../lib/i18n';
 import { setConfigLive, useStore } from '../store';
 import { ColorPicker, PRESET_COLORS } from './ColorPicker';
 
 /** Шаги визарда по порядку. */
 const STEPS = ['lang', 'java', 'look', 'account'] as const;
-
-/** Английские названия языков — подсказка под самоназванием. */
-const LANG_EN: Record<string, string> = {
-  ru: 'Russian',
-  en: 'English',
-  pl: 'Polish',
-  uk: 'Ukrainian',
-  eo: 'Esperanto',
-};
 
 /** Способы входа — те же, что в модалке добавления аккаунта. */
 const KINDS: { p: 'ms' | 'ely' | 'off' | 'lsk'; label: string; hint: string }[] = [

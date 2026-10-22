@@ -124,6 +124,8 @@ pub async fn import(dir: &str) -> Res<Instance> {
         playtime_days: std::collections::BTreeMap::new(),
         last_played: None,
         created: chrono::Utc::now().timestamp(),
+        pack: None,
+        game_dir: None,
     };
 
     let dst = paths::instance_minecraft_dir(&id);

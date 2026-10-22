@@ -34,3 +34,42 @@ launcher.html
 # кэши генераторов переводов
 src/lib/i18n-auto.json
 src/lib/iu-cache.json
+src/lib/olb-cache.json
+site/i18n.json
+
+# мусор сборки установщика и сгенерированные схемы
+installer/.tmp-build/
+installer/src-tauri/gen/
+
+# дизайн-макеты (локальные, в репозитории не нужны)
+docs/design/
+
+# ==== результаты сборки (в репозиторий и на GitHub не попадают) ====
+# бинарники, установщики и образы: Windows / macOS / Linux
+src-tauri/target/
+target/
+**/bundle/
+*.exe
+*.msi
+*.msix
+*.dmg
+*.pkg
+*.app/
+*.AppImage
+*.appimage
+*.deb
+*.rpm
+*.snap
+*.flatpak
+*.pdb
+*.dSYM/
+Arbuz-Launcher-*-portable.exe
+
+# готовые архивы релиза и локальные папки выкладки
+/release/
+installer/out/
+*.tar.gz
+*.tar.xz
+
+# кэш Tauri CLI
+.tauri/

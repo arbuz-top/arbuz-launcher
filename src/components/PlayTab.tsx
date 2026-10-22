@@ -1,15 +1,15 @@
-import { memo, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { memo, useMemo, useState, type CSSProperties } from 'react';
 import { art, artCols, pi } from '../lib/art';
 import type { Instance } from '../lib/api';
 import { api } from '../lib/api';
 import { fmtHours, fmtRelative, gb } from '../lib/format';
 import { playInstance, stat } from '../lib/launch';
 import { LOADER_LABEL } from '../lib/labels';
-import { tp, useT } from '../lib/i18n';
-import { builtinWallpaper } from '../lib/builtin';
-import { curAccount, iconUrl, loadProfileContent, saveInstance, useArtTheme, useStore } from '../store';
+import { useT } from '../lib/i18n';import { builtinWallpaper } from '../lib/builtin';
+import { curAccount, iconUrl, saveInstance, useArtTheme, useStore } from '../store';
 import { Avatar, PlayIcon } from './Controls';
 import { CustomVersionModal } from './CustomVersionModal';
+import { LanShare } from './LanShare';
 
 /** Группы версий в селекторе, свои — сверху. */
 const VERSION_GROUPS: [string, string][] = [
@@ -58,40 +58,6 @@ export const PlayTab = memo(function PlayTab({ inst }: { inst: Instance }) {
     [inst.biome, inst.created, k, theme],
   );
   const contentCount = s.content.length;
-  const checkUpd = s.config.checkUpdates;
-
-  // Число доступных обновлений контента: считается лениво, если включено в настройках.
-  const [updates, setUpdates] = useState(0);
-  useEffect(() => {
-    if (!checkUpd) {
-      setUpdates(0);
-      return;
-    }
-    let alive = true;
-    api
-      .checkUpdates(inst.id)
-      .then((list) => {
-        if (alive) setUpdates(list.length);
-      })
-      .catch((e) => {
-        if (alive) useStore.getState().toastMsg(String(e));
-      });
-    return () => {
-      alive = false;
-    };
-  }, [inst.id, checkUpd, contentCount]);
-
-  const applyUpd = async () => {
-    if (updates === 0) return;
-    try {
-      const n = await api.applyUpdates(inst.id);
-      await loadProfileContent(inst.id);
-      setUpdates(0);
-      useStore.getState().toastMsg(t('Обновлено файлов: {n}', { n }));
-    } catch (e) {
-      useStore.getState().toastMsg(String(e));
-    }
-  };
 
   // «Остановить» показываем только когда процесс игры реально стартовал.
   // Во время скачивания кнопка показывает прогресс (как в макете, pbH).
@@ -203,6 +169,7 @@ export const PlayTab = memo(function PlayTab({ inst }: { inst: Instance }) {
           </a>
         </div>
       </div>
+      <LanShare id={inst.id} live={live} />
       <div className="shelf">
         <div className="tile t1" style={{ '--i': 0 } as CSSProperties}>
           <div
@@ -246,14 +213,6 @@ export const PlayTab = memo(function PlayTab({ inst }: { inst: Instance }) {
             <button className="btn sm" onClick={() => useStore.getState().set({ tab: 'mods' })}>
               {t('Открыть')}
             </button>
-            {updates > 0 && (
-              <a
-                style={{ color: 'var(--pri)', cursor: 'pointer', fontWeight: 500 }}
-                onClick={() => void applyUpd()}
-              >
-                {tp('update', updates)}
-              </a>
-            )}
           </div>
         </div>
         <div className="tile t3" style={{ flexDirection: 'column', '--i': 2 } as CSSProperties}>

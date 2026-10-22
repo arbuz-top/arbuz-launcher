@@ -59,25 +59,25 @@
 
 !ifdef MUI_UNDIRECTORYPAGE
   ${LangFileString} MUI_UNTEXT_DIRECTORY_TITLE "ᓂᕈᐊᕐᓗᒍ ᐲᔭᐃᓂᖅ ᐃᓂᒋᔭᖓᓂᒃ"
-  ${LangFileString} MUI_UNTEXT_DIRECTORY_SUBTITLE ""
+  ${LangFileString} MUI_UNTEXT_DIRECTORY_SUBTITLE "ᓂᕈᐊᕐᓗᒍ ᐸᐃᑉᐹᖁᑎᖓ ᐲᔭᐃᕕᒋᓂᐊᖅᑕᐃᑦ $(^NameDA)."
 !endif
 
 !ifdef MUI_INSTFILESPAGE
   ${LangFileString} MUI_TEXT_INSTALLING_TITLE "ᐋᖅᑭᒃᓯᓂᖅ"
-  ${LangFileString} MUI_TEXT_INSTALLING_SUBTITLE ""
+  ${LangFileString} MUI_TEXT_INSTALLING_SUBTITLE "ᒪᓐᓇᐅᒐᓗᐊᖅ $(^NameDA) ᐋᖅᑭᒃᓯᓂᐊᖅᑐᖅ."
   ${LangFileString} MUI_TEXT_FINISH_TITLE "ᐋᖅᑭᒃᓱᐃᓂᖅ ᐱᔭᕇᖅᑐᖅ"
-  ${LangFileString} MUI_TEXT_FINISH_SUBTITLE ""
+  ${LangFileString} MUI_TEXT_FINISH_SUBTITLE "ᐋᖅᑭᒃᓱᐃᓂᖅ ᐱᔭᕇᖅᑐᖅ."
   ${LangFileString} MUI_TEXT_ABORT_TITLE "ᐋᖅᑭᒃᓯᓂᖅ ᓄᖅᑲᖅᑎᑕᐅᕗᖅ"
-  ${LangFileString} MUI_TEXT_ABORT_SUBTITLE ""
+  ${LangFileString} MUI_TEXT_ABORT_SUBTITLE "ᐋᖅᑭᒃᓱᐃᓂᖅ ᓄᖅᑲᖅᑎᑕᐅᕗᖅ."
 !endif
 
 !ifdef MUI_UNINSTFILESPAGE
   ${LangFileString} MUI_UNTEXT_UNINSTALLING_TITLE "ᐲᔭᐃᓂᖅ"
-  ${LangFileString} MUI_UNTEXT_UNINSTALLING_SUBTITLE ""
+  ${LangFileString} MUI_UNTEXT_UNINSTALLING_SUBTITLE "ᒪᓐᓇᐅᒐᓗᐊᖅ $(^NameDA) ᐲᔭᐃᓂᐊᖅᑐᖅ."
   ${LangFileString} MUI_UNTEXT_FINISH_TITLE "ᐲᔭᐃᓂᖅ ᐱᔭᕇᖅᑐᖅ"
-  ${LangFileString} MUI_UNTEXT_FINISH_SUBTITLE ""
+  ${LangFileString} MUI_UNTEXT_FINISH_SUBTITLE "ᐲᔭᐃᓂᖅ ᐱᔭᕇᖅᑐᖅ."
   ${LangFileString} MUI_UNTEXT_ABORT_TITLE "ᐲᔭᐃᓂᖅ ᓄᖅᑲᖅᑎᑕᐅᕗᖅ"
-  ${LangFileString} MUI_UNTEXT_ABORT_SUBTITLE ""
+  ${LangFileString} MUI_UNTEXT_ABORT_SUBTITLE "ᐲᔭᐃᓂᖅ ᓄᖅᑲᖅᑎᑕᐅᕗᖅ."
 !endif
 
 !ifdef MUI_FINISHPAGE
@@ -87,14 +87,14 @@
 !endif
 
 !ifdef MUI_UNFINISHPAGE
-  ${LangFileString} MUI_UNTEXT_FINISH_INFO_TITLE ""
+  ${LangFileString} MUI_UNTEXT_FINISH_INFO_TITLE "ᐲᔭᐃᓂᖅ $(^NameDA) ᐱᔭᕇᖅᑐᖅ"
   ${LangFileString} MUI_UNTEXT_FINISH_INFO_TEXT "$(^NameDA) ᐲᖅᑕᐅᓯᒪᓕᖅᑐᖅ ᖃᕆᑕᐅᔭᕐᓂᒃ. $\r$\n$\r$\nClick ᐱᔭᕇᕐᓗᒍ ᒪᑐᓗᒍ ᐋᖅᑭᒃᓱᐃᓂᖅ."
   ${LangFileString} MUI_UNTEXT_FINISH_INFO_REBOOT "ᖃᕆᑕᐅᔭᐃᑦ ᐱᒋᐊᒃᑲᓐᓂᕆᐊᖃᖅᐳᖅ ᐱᔭᕇᖅᓯᓂᐊᕐᓗᓂ ᐲᔭᐃᓂᕐᒥᒃ $(^NameDA). ᐱᒋᐊᒃᑲᓐᓂᕈᒪᕖᑦ ᒫᓐᓇ?"
 !endif
 
 !ifdef MUI_FINISHPAGE | MUI_UNFINISHPAGE
   ${LangFileString} MUI_TEXT_FINISH_REBOOTNOW "ᐱᒋᐊᒃᑲᓐᓂᕆᑦ ᒫᓐᓇ"
-  ${LangFileString} MUI_TEXT_FINISH_REBOOTLATER ""
+  ${LangFileString} MUI_TEXT_FINISH_REBOOTLATER "No, I will restart the computer later"
   ${LangFileString} MUI_TEXT_FINISH_RUN "&ᐊᐅᓚᑦᑎᓗᑎᑦ $(^NameDA)"
   ${LangFileString} MUI_TEXT_FINISH_SHOWREADME "&ᑕᑯᒃᓴᐅᑎᑦᑎᓗᑎᑦ ᐅᖃᓕᒫᕆᑦ ᐅᕙᓐᓂᒃ"
   ${LangFileString} MUI_BUTTONTEXT_FINISH "&ᐱᐊᓂᒡᕕᖓ"  

@@ -18,11 +18,18 @@ export function AiPackModal({ open, onClose }: { open: boolean; onClose: () => v
   const t = useT();
   const versions = useStore((s) => s.versions);
   const enabled = useStore((s) => s.config.aiBuilder);
+  const cfgLimit = useStore((s) => s.config.aiPackLimit);
+  const cfgSource = useStore((s) => s.config.aiPackSource);
+  const cfgModel = useStore((s) => s.config.aiPackModel);
 
   const [phase, setPhase] = useState<'form' | 'plan' | 'build'>('form');
   const [prompt, setPrompt] = useState('');
   const [mc, setMc] = useState('');
   const [loader, setLoader] = useState<Loader>('fabric');
+  const [limit, setLimit] = useState('');
+  const [source, setSource] = useState('');
+  const [model, setModel] = useState('');
+  const [models, setModels] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [plan, setPlan] = useState<PackPlan | null>(null);
@@ -45,6 +52,18 @@ export function AiPackModal({ open, onClose }: { open: boolean; onClose: () => v
     setCur('');
   }, [open]);
 
+  // Открыли окно — берём лимит, источник и модель из настроек (их же можно поменять здесь).
+  useEffect(() => {
+    if (!open) return;
+    setLimit(cfgLimit > 0 ? String(cfgLimit) : '');
+    setSource(cfgSource);
+    setModel(cfgModel);
+    void api
+      .aiModels()
+      .then(setModels)
+      .catch(() => {});
+  }, [open, cfgLimit, cfgSource, cfgModel]);
+
   if (!open || !enabled) return null;
 
   const releases = versions.filter((v) => v.kind === 'release').slice(0, 80);
@@ -61,11 +80,16 @@ export function AiPackModal({ open, onClose }: { open: boolean; onClose: () => v
     setBusy(true);
     setErr(null);
     try {
+      const n = parseInt(limit, 10);
+      const lim = Number.isFinite(n) && n > 0 ? Math.min(200, n) : null;
       const p = await api.aiPackPlan(
         prompt.trim(),
         useStore.getState().config.lang,
         mc || null,
         loader,
+        lim,
+        source || null,
+        model || null,
       );
       setPlan(p);
       setName(p.name);
@@ -156,6 +180,9 @@ export function AiPackModal({ open, onClose }: { open: boolean; onClose: () => v
             {it.why ? ' · ' + it.why : ''}
           </small>
         </span>
+        <span className={'ai-src s-' + it.source} title={it.source}>
+          {it.source === 'modrinth' ? 'Modrinth' : 'CurseForge'}
+        </span>
         <span className="ai-dl">{fmtDl(it.downloads)}</span>
       </label>
     );
@@ -210,6 +237,52 @@ export function AiPackModal({ open, onClose }: { open: boolean; onClose: () => v
                     ))}
                   </select>
                 </div>
+              </div>
+
+              <div className="ai-row">
+                <div>
+                  <label className="l">{t('Лимит модов')}</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={200}
+                    value={limit}
+                    onChange={(e) => setLimit(e.target.value)}
+                    placeholder={t('Без ограничения')}
+                  />
+                </div>
+                <div>
+                  <label className="l">{t('Источник модов')}</label>
+                  <select value={source} onChange={(e) => setSource(e.target.value)}>
+                    <option value="">{t('Оба сразу')}</option>
+                    <option value="modrinth">{t('Сначала Modrinth')}</option>
+                    <option value="curseforge">{t('Сначала CurseForge')}</option>
+                  </select>
+                </div>
+              </div>
+              <div className="ai-row" style={{ gridTemplateColumns: '1fr' }}>
+                <div>
+                  <label className="l">{t('Модель ИИ')}</label>
+                  <select
+                    value={model}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setModel(v);
+                      const cfg = useStore.getState().config;
+                      useStore.getState().setConfig({ ...cfg, aiPackModel: v });
+                    }}
+                  >
+                    <option value="">{t('Первая доступная')}</option>
+                    {models.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="hint" style={{ marginBottom: 4 }}>
+                {t('Пусто в лимите — модов будет сколько нужно сборке. «Оба сразу» ищет в двух каталогах, приоритетный — сначала в нём, а если там пусто, то в другом. Модель — кто именно собирает сборку.')}
               </div>
 
               {err && <div className="ai-err">{err}</div>}
