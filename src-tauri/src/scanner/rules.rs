@@ -89,7 +89,9 @@ const SIGS: &[Sig] = &[
     // R2: кража данных
     Sig { needle: "launcher_accounts.json", rule: "R2", code: "r2_theft", kind: "файл аккаунтов лаунчера" },
     Sig { needle: "launcher_profiles.json", rule: "R2", code: "r2_theft", kind: "профили лаунчера" },
-    Sig { needle: "tdata", rule: "R2", code: "r2_theft", kind: "сессии Telegram (tdata)" },
+    // «tdata» — только как элемент пути: голая подстрока ловит CompactData.
+    Sig { needle: "\\tdata", rule: "R2", code: "r2_theft", kind: "сессии Telegram (tdata)" },
+    Sig { needle: "/tdata", rule: "R2", code: "r2_theft", kind: "сессии Telegram (tdata)" },
     Sig { needle: "wallet.dat", rule: "R2", code: "r2_theft", kind: "кошелёк Bitcoin" },
     Sig { needle: "keystore/utc--", rule: "R2", code: "r2_theft", kind: "keystore Ethereum" },
     Sig { needle: "ethereum/keystore", rule: "R2", code: "r2_theft", kind: "keystore Ethereum" },
@@ -112,8 +114,6 @@ const SIGS: &[Sig] = &[
     Sig { needle: "tasklist", rule: "R16", code: "r16_fingerprint", kind: "список процессов (tasklist)" },
     Sig { needle: "wmic ", rule: "R16", code: "r16_fingerprint", kind: "wmic" },
     Sig { needle: "reg query", rule: "R16", code: "r16_fingerprint", kind: "чтение реестра" },
-    // R15: движки
-    Sig { needle: "nashorn", rule: "R15", code: "r15_script", kind: "Nashorn" },
 ];
 
 /// Маркеры для XOR-поиска: подстроки правил 1 и 3.
@@ -218,30 +218,6 @@ impl Sink {
 // Метаданные мода
 // ---------------------------------------------------------------------------
 
-/// modid из fabric.mod.json / quilt.mod.json / mods.toml.
-fn mod_id(ev: &JarEvidence) -> Option<String> {
-    if let Some(j) = &ev.mod_json {
-        if let Some(id) = j.get("id").and_then(|v| v.as_str()) {
-            return Some(id.to_string());
-        }
-        if let Some(id) = j.pointer("/quilt_loader/id").and_then(|v| v.as_str()) {
-            return Some(id.to_string());
-        }
-    }
-    if let Some(t) = &ev.mods_toml {
-        if let Some(id) = t
-            .get("mods")
-            .and_then(|m| m.as_array())
-            .and_then(|a| a.first())
-            .and_then(|m| m.get("modId"))
-            .and_then(|v| v.as_str())
-        {
-            return Some(id.to_string());
-        }
-    }
-    None
-}
-
 /// Все URL из контактных полей метаданных — их домены считаются допустимыми.
 fn metadata_hosts(ev: &JarEvidence) -> BTreeSet<String> {
     let mut out = BTreeSet::new();
@@ -299,6 +275,7 @@ fn url_host(u: &str) -> Option<String> {
         .or_else(|| u.strip_prefix("HTTPS://"))
         .or_else(|| u.strip_prefix("HTTP://"))?;
     let host = rest.split(['/', '?', '#', ':']).next()?;
+    let host = host.trim_end_matches('.');
     if host.is_empty() {
         return None;
     }
@@ -433,36 +410,7 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
         }
     }
 
-    // --- R3: запуск процессов (вызовы) ---
-    for c in classes_calling(ev, |cl, _| cl == "java/lang/ProcessBuilder") {
-        s.push("R3", "r3_exec", w.process_exec, true, &c.name, "запуск процессов через ProcessBuilder".into());
-    }
-    for c in classes_calling(ev, |cl, n| cl == "java/lang/Runtime" && n == "exec") {
-        s.push("R3", "r3_exec", w.process_exec, true, &c.name, "запуск процессов через Runtime.exec".into());
-    }
-
-    // --- R4: динамическая загрузка кода ---
-    for c in &ev.classes {
-        let hit = c.method_calls.iter().any(|m| {
-            m.class == "java/net/URLClassLoader"
-                || (m.class.ends_with("ClassLoader") && matches!(m.name.as_str(), "defineClass" | "loadClass"))
-                || (m.class == "java/lang/invoke/MethodHandles$Lookup"
-                    && matches!(m.name.as_str(), "defineClass" | "privateLookupIn"))
-        }) || c.class_refs.iter().any(|r| {
-            r == "sun/misc/Unsafe"
-                || r == "jdk/internal/misc/Unsafe"
-                || r == "jdk/internal/unsafe/Unsafe"
-        });
-        if hit {
-            s.push("R4", "r4_dynamic", w.dynamic_code_load, false, &c.name, "динамическая загрузка кода (ClassLoader/defineClass/Unsafe)".into());
-        }
-        // Расшифровка ресурсов в классы: чтение ресурса + строка «*.class».
-        if has_call(c, "", "getResourceAsStream") && c.strings.iter().any(|x| x.ends_with(".class")) {
-            s.push("R4", "r4_dynamic", w.dynamic_code_load, false, &c.name, "чтение ресурса с расширением .class (расшифровка классов)".into());
-        }
-    }
-
-    // --- R5: загрузка исполняемых файлов ---
+    // URL из строковых констант — нужны правилам 3 (эскалация) и 5.
     let mut urls: Vec<(String, String)> = Vec::new(); // (класс, url)
     for c in &ev.classes {
         for str_ in &c.strings {
@@ -477,6 +425,62 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
             .into_iter()
             .find(|e| path.ends_with(e))
     };
+
+    // --- R3: запуск процессов (вызовы) ---
+    // Сам по себе exec — приём легитимных модов (проба GPU, открытие ссылки
+    // в браузере, xdg-open): мягкий вес. Жёстким делаем только комбинацию с
+    // записью файлов, скачиванием или подозрительными командами.
+    let any_exec = ev
+        .classes
+        .iter()
+        .any(|c| c.method_calls.iter().any(|m| m.class == "java/lang/ProcessBuilder" || (m.class == "java/lang/Runtime" && m.name == "exec")));
+    let exec_escalation = any_exec
+        && (ev.classes.iter().any(|c| writes_files(c))
+            || urls.iter().any(|(_, u)| exec_ext(u).is_some())
+            || ev
+                .classes
+                .iter()
+                .flat_map(|c| c.strings.iter())
+                .any(|str_| sig_hits(str_).iter().any(|s| s.rule == "R3")));
+    for c in classes_calling(ev, |cl, _| cl == "java/lang/ProcessBuilder") {
+        s.push("R3", "r3_exec", w.process_exec, exec_escalation, &c.name, "запуск процессов через ProcessBuilder".into());
+    }
+    for c in classes_calling(ev, |cl, n| cl == "java/lang/Runtime" && n == "exec") {
+        s.push("R3", "r3_exec", w.process_exec, exec_escalation, &c.name, "запуск процессов через Runtime.exec".into());
+    }
+
+    // --- R4: динамическая загрузка кода ---
+    for c in &ev.classes {
+        // Полноценная загрузка кода: URLClassLoader/defineClass.
+        let loader = c.method_calls.iter().any(|m| {
+            m.class == "java/net/URLClassLoader"
+                || (m.class.ends_with("ClassLoader") && matches!(m.name.as_str(), "defineClass" | "loadClass"))
+                || (m.class == "java/lang/invoke/MethodHandles$Lookup"
+                    && matches!(m.name.as_str(), "defineClass" | "privateLookupIn"))
+        });
+        if loader {
+            s.push("R4", "r4_dynamic", w.dynamic_code_load, false, &c.name, "динамическая загрузка кода (ClassLoader/defineClass)".into());
+        }
+        // Unsafe сам по себе — приём оптимизаторов (lithium и др.): отдельный
+        // мягкий вес, не мгновенный блок в усиленном режиме.
+        if c.class_refs.iter().any(|r| {
+            r == "sun/misc/Unsafe"
+                || r == "jdk/internal/misc/Unsafe"
+                || r == "jdk/internal/unsafe/Unsafe"
+        }) {
+            s.push("R4", "r4_unsafe", w.unsafe_use, false, &c.name, "обращение к sun.misc.Unsafe".into());
+        }
+        // Расшифровка ресурсов в классы: чтение ресурса + «*.class» + шифрование.
+        let crypto = c.method_calls.iter().any(|m| {
+            (m.class == "javax/crypto/Cipher" && matches!(m.name.as_str(), "getInstance" | "doFinal"))
+                || (m.class == "java/util/Base64" && m.name == "decode")
+        });
+        if crypto && has_call(c, "", "getResourceAsStream") && c.strings.iter().any(|x| x.ends_with(".class")) {
+            s.push("R4", "r4_dynamic", w.dynamic_code_load, false, &c.name, "расшифровка ресурса в class-файл".into());
+        }
+    }
+
+    // --- R5: загрузка исполняемых файлов (URL собраны выше, для R3) ---
     let mut has_exec_url = false;
     let mut has_jar_url = false;
     for (class, u) in &urls {
@@ -534,22 +538,27 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
         s.push("R6", "r6_broken", w.broken_class, false, "архив", format!("битые class-файлы: {}", ev.broken_classes));
     }
 
-    // Классы вне пакета modid (R6) — только заметное расхождение.
-    if let Some(modid) = mod_id(ev) {
-        let id_norm = modid.replace(['-', '.'], "_");
-        let outside = ev
-            .classes
-            .iter()
-            .filter(|c| {
-                let name = &c.name;
-                !name.contains('$')
-                    && !name.starts_with(&modid)
-                    && !name.starts_with(&id_norm)
-                    && !LIB_PREFIXES.iter().any(|p| name.starts_with(p))
-            })
-            .count();
-        if outside >= 5 && outside * 3 > ev.classes.len() {
-            s.push("R6", "r6_outside", w.classes_outside_modid, false, "архив", format!("большинство классов вне пакета modid «{modid}»"));
+    // Классы вне пакета modid (R6). modid ↔ имя пакета связано не всегда
+    // (shaded-библиотеки живут под доменом автора), поэтому смотрим на
+    // структуру: классы без пакета или россыпь несвязанных корневых пакетов.
+    {
+        let mut roots: BTreeSet<String> = BTreeSet::new();
+        let mut default_pkg = 0usize;
+        for c in &ev.classes {
+            match c.name.split_once('/') {
+                None => default_pkg += 1,
+                Some((root, _)) => {
+                    if !LIB_PREFIXES.iter().any(|p| c.name.starts_with(p)) {
+                        roots.insert(root.to_string());
+                    }
+                }
+            }
+        }
+        if default_pkg > 0 {
+            s.push("R6", "r6_outside", w.classes_outside_modid, false, "архив", format!("классы без пакета: {default_pkg}"));
+        } else if roots.len() > 4 {
+            let list: Vec<String> = roots.into_iter().take(5).collect();
+            s.push("R6", "r6_outside", w.classes_outside_modid, false, "архив", format!("классы из несвязанных пакетов: {}", list.join(", ")));
         }
     }
 
@@ -745,10 +754,16 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
         }
     }
 
-    // --- R16: фингерпринт системы ---
+    // --- R16: фингерпринт системы (лёгкий сигнал — максимум 3 находки) ---
     for c in &ev.classes {
+        if s.count("R16") >= 3 {
+            break;
+        }
         if has_call(c, "java/lang/System", "getenv") {
             s.push("R16", "r16_fingerprint", w.fingerprinting, false, &c.name, "чтение переменных окружения".into());
+        }
+        if s.count("R16") >= 3 {
+            break;
         }
         if has_call(c, "java/lang/System", "getProperty") {
             let keys = ["user.name", "os.name", "user.home", "user.dir"];
@@ -910,6 +925,70 @@ mod tests {
             .build();
         let findings = scan(&[meta("cleanmod"), ("com/example/cleanmod/Main.class".into(), cls)]);
         assert!(findings.is_empty(), "находки: {findings:?}");
+    }
+
+    /// Регрессии с настоящих чистых модов (cloth-config, lithium, modernfix).
+    #[test]
+    fn regress_no_false_positives_on_clean_mods() {
+        // «CompactData» содержит подстроку tdata — не должно ловиться.
+        let yaml = ClassBuilder::new("org/yaml/CompactData")
+            .string("CompactData notation")
+            .build();
+        let f = scan(&[meta("yaml"), ("org/yaml/CompactData.class".into(), yaml)]);
+        assert!(!f.iter().any(|x| x.what.contains("tdata")), "находки: {f:?}");
+
+        // Настоящий путь к tdata ловится.
+        let tg = ClassBuilder::new("com/x/T")
+            .string(r"C:\Users\bob\AppData\Roaming\Telegram Desktop\tdata\key_datas")
+            .build();
+        let f2 = scan(&[meta("t"), ("com/x/T.class".into(), tg)]);
+        assert!(f2.iter().any(|x| x.what.contains("tdata")));
+
+        // Shaded-библиотеки под одним доменом автора — это не «чужие пакеты».
+        let mut entries = vec![meta("cloth-config")];
+        for i in 0..6 {
+            let cls = ClassBuilder::new(&format!("me/author/cloth/Class{i}")).build();
+            entries.push((format!("me/author/cloth/Class{i}.class"), cls));
+        }
+        let f3 = scan(&entries);
+        assert!(!f3.iter().any(|x| x.code == "r6_outside"), "находки: {f3:?}");
+
+        // Unsafe отдельно от ClassLoader — мягкий код и вес.
+        let li = ClassBuilder::new("net/mods/lithium/Chunk")
+            .method_ref("jdk/internal/misc/Unsafe", "allocateUninitializedArray", "(Ljava/lang/Class;I)Ljava/lang/Object;")
+            .build();
+        let f4 = scan(&[meta("lithium"), ("net/mods/lithium/Chunk.class".into(), li)]);
+        let unsafe_f = f4.iter().find(|x| x.code == "r4_unsafe").expect("unsafe finding");
+        assert_eq!(unsafe_f.weight, 10);
+        assert!(!f4.iter().any(|x| x.code == "r4_dynamic"));
+
+        // getResourceAsStream + «.class» без шифрования — не признак.
+        let mf = ClassBuilder::new("org/mods/fix/Cfg")
+            .method_ref("java/lang/Class", "getResourceAsStream", "(Ljava/lang/String;)Ljava/io/InputStream;")
+            .string("coremods/patch.class")
+            .build();
+        let f5 = scan(&[meta("modernfix"), ("org/mods/fix/Cfg.class".into(), mf)]);
+        assert!(!f5.iter().any(|x| x.code == "r4_dynamic"), "находки: {f5:?}");
+
+        // То же с Cipher — уже расшифровка классов.
+        let enc = ClassBuilder::new("org/evil/Enc")
+            .method_ref("java/lang/Class", "getResourceAsStream", "(Ljava/lang/String;)Ljava/io/InputStream;")
+            .method_ref("javax/crypto/Cipher", "doFinal", "([B)[B")
+            .string("payload/hidden.class")
+            .build();
+        let f6 = scan(&[meta("encmod"), ("org/evil/Enc.class".into(), enc)]);
+        assert!(f6.iter().any(|x| x.code == "r4_dynamic"));
+    }
+
+    #[test]
+    fn scattered_packages_flagged() {
+        let mut entries = vec![meta("scattered")];
+        for pkg in ["alpha", "beta", "gamma", "delta", "zeta", "eta"] {
+            let cls = ClassBuilder::new(&format!("{pkg}/C")).build();
+            entries.push((format!("{pkg}/C.class"), cls));
+        }
+        let f = scan(&entries);
+        assert!(f.iter().any(|x| x.code == "r6_outside"), "находки: {f:?}");
     }
 
     #[test]

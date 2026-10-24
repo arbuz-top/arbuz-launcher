@@ -442,6 +442,8 @@ export interface ModReport {
   knownHash: boolean;
   modrinthProject: string | null;
   offlineLookup: boolean;
+  /** Файл в ручных исключениях профиля. */
+  allowed: boolean;
 }
 
 /** Текстура скина аккаунта: data-URL и её размеры в пикселях. */

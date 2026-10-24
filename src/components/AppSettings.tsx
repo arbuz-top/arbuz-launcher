@@ -431,6 +431,35 @@ export function AppSettings() {
           <div className="hint" style={{ paddingBottom: 12 }}>
             {t('Жёсткая: то же плюс отдельные HOME/APPDATA/TEMP внутри профиля.')}
           </div>
+          <div className="sw">
+            <span>{t('Сканер модов')}</span>
+            <Toggle on={c.scannerEnabled} onClick={() => set({ scannerEnabled: !c.scannerEnabled })} />
+          </div>
+          <div className="hint" style={{ paddingBottom: 4 }}>
+            {t('Перед запуском моды проверяются на подозрительные признаки: отправка данных на сторонние серверы, запуск процессов, обфускация и другое. Отчёт — во вкладке «Безопасность» профиля.')}
+          </div>
+          <div className="seg" style={{ margin: '8px 0 12px', opacity: c.scannerEnabled ? 1 : 0.45 }}>
+            {(['normal', 'strict', 'paranoid'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                disabled={!c.scannerEnabled}
+                className={c.scannerMode === m ? 'on' : ''}
+                onClick={() => set({ scannerMode: m })}
+              >
+                {t(m === 'normal' ? 'Обычный' : m === 'strict' ? 'Усиленный' : 'Параноидальный')}
+              </button>
+            ))}
+          </div>
+          <div className="hint" style={{ paddingBottom: 4 }}>
+            {t('Обычный: блокировка только при опасных признаках, подозрительные — на ваше усмотрение. Хеш мода с Modrinth заметно снижает оценку.')}
+          </div>
+          <div className="hint" style={{ paddingBottom: 4 }}>
+            {t('Усиленный: блокировка и при некоторых одиночных признаках (нативные библиотеки, обфускация, java-агент), проверяются также конфиги и паки.')}
+          </div>
+          <div className="hint" style={{ paddingBottom: 12 }}>
+            {t('Параноидальный: запускаются только моды с известным хешем и без признаков; заблокированные переносятся в карантин.')}
+          </div>
         </div>
         <div className="hint" style={{ marginTop: 6 }}>
           {t('По умолчанию доступна только плоская тема.')}

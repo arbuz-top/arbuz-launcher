@@ -17,9 +17,13 @@ pub(crate) struct Weights {
     /// R2b: доступ к токену/сессии (getAccessToken/getSession).
     pub session_token_access: i32,
     /// R3: запуск процессов (ProcessBuilder, Runtime.exec, powershell…).
+    /// Сам по себе exec мягкий; hard-статус даёт только комбинация
+    /// с записью файлов/скачиванием/подозрительными командами.
     pub process_exec: i32,
-    /// R4: динамическая загрузка кода (URLClassLoader, defineClass, Unsafe).
+    /// R4: динамическая загрузка кода (URLClassLoader, defineClass).
     pub dynamic_code_load: i32,
+    /// R4b: обращение к sun.misc.Unsafe (приём оптимизаторов, мягкий вес).
+    pub unsafe_use: i32,
     /// R5: URL исполняемого файла + запись на диск + запуск.
     pub executable_download: i32,
     /// R5b: только URL на .exe/.dll/.bat/.ps1 (без комбо).
@@ -59,8 +63,7 @@ pub(crate) struct Weights {
     /// R15: скриптовые движки (ScriptEngine, Nashorn, Groovy, Rhino).
     pub script_engine: i32,
     /// R16: фингерпринт системы (getenv, user.name, tasklist…).
-    pub fingerprinting: i32,
-    /// R17: отложенный запуск (даты, большие Thread.sleep).
+    pub fingerprinting: i32,    /// R17: отложенный запуск (даты, большие Thread.sleep).
     pub delayed_execution: i32,
     /// R18: проверки VM/дебаггера.
     pub anti_analysis: i32,
@@ -86,8 +89,9 @@ impl Default for Weights {
             exfil_channel: 45,
             data_theft: 40,
             session_token_access: 20,
-            process_exec: 35,
+            process_exec: 18,
             dynamic_code_load: 30,
+            unsafe_use: 10,
             executable_download: 60,
             executable_download_url_only: 35,
             native_binaries: 20,
@@ -105,9 +109,9 @@ impl Default for Weights {
             manifest_classpath: 15,
             infect_other_mods: 50,
             system_load: 18,
-            jni_native_methods: 12,
+            jni_native_methods: 8,
             script_engine: 22,
-            fingerprinting: 8,
+            fingerprinting: 5,
             delayed_execution: 14,
             anti_analysis: 25,
             shutdown_hook: 8,
@@ -245,6 +249,8 @@ impl ScannerConfig {
     /// Конфиг с доменным белым списком по умолчанию.
     pub(crate) fn with_default_whitelist() -> Self {
         let whitelist = [
+            "modrinth.com",
+            "www.modrinth.com",
             "api.modrinth.com",
             "cdn.modrinth.com",
             "api.curseforge.com",
@@ -287,6 +293,7 @@ impl ScannerConfig {
             &mut w.session_token_access,
             &mut w.process_exec,
             &mut w.dynamic_code_load,
+            &mut w.unsafe_use,
             &mut w.executable_download,
             &mut w.executable_download_url_only,
             &mut w.native_binaries,

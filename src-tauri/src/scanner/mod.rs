@@ -94,6 +94,8 @@ pub struct ModReport {
     pub modrinth_project: Option<String>,
     /// Каталоги были недоступны — «хеш не найден» может быть неточным.
     pub offline_lookup: bool,
+    /// Файл в ручных исключениях профиля: гейт его не блокирует.
+    pub allowed: bool,
 }
 
 // ---------------------------------------------------------------------------
@@ -360,11 +362,10 @@ async fn scan_dirs(
         let results: Vec<(usize, lookup::LookupResult)> = stream::iter(idx)
             .map(|i| {
                 let e = &scanned[i].entry;
-                let sha256 = e.sha256.clone();
                 let sha1 = e.sha1.clone();
                 let key = cf_key.map(str::to_string);
                 async move {
-                    let r = lookup::by_hash(http, &sha256, &sha1, key.as_deref()).await;
+                    let r = lookup::by_hash(http, &sha1, key.as_deref()).await;
                     (i, r)
                 }
             })
@@ -459,6 +460,7 @@ async fn scan_dirs(
                 known_hash: known,
                 modrinth_project: s.entry.modrinth_project.clone(),
                 offline_lookup: s.offline,
+                allowed: false,
             }
         })
         .collect()
@@ -510,6 +512,10 @@ pub async fn scan_instance(
         true,
     )
     .await;
+    let allowed = load_allowed(id).await;
+    for r in &mut reports {
+        r.allowed = allowed.contains(&r.file);
+    }
     reports.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.file.cmp(&b.file)));
     Ok(reports)
 }
@@ -767,5 +773,24 @@ mod tests {
         let r2 = scan_dirs(&http, &game, &[mods], &cfg, &MalwareDb::default(), None, &cache_dir, ScanMode::Normal, false).await;
         assert_ne!(r2[0].sha256, first_sha);
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Отладка на реальном jar: ARBUZ_SCAN_JAR=/путь/к/mod.jar cargo test
+    /// dump_real_jar -- --ignored --nocapture. Показывает все находки правил.
+    #[tokio::test]
+    #[ignore = "нужен путь к jar в ARBUZ_SCAN_JAR"]
+    async fn dump_real_jar() {
+        let path = std::env::var("ARBUZ_SCAN_JAR").expect("ARBUZ_SCAN_JAR");
+        let bytes = std::fs::read(&path).expect("read jar");
+        let cfg = ScannerConfig::with_default_whitelist();
+        let ev = evidence::evidence_from_bytes(&bytes, &cfg.limits);
+        let ctx = ScanContext::default();
+        let findings = rules::analyze(&ev, &ctx, &cfg);
+        println!("== {} : классов {}, записей {}", path, ev.classes.len(), ev.entries.len());
+        let sum: i32 = findings.iter().map(|f| f.weight).sum();
+        for f in &findings {
+            println!("{:>3}  {}  [{}]  {}  @ {}", f.weight, f.rule, f.code, f.what, f.place);
+        }
+        println!("== сумма весов: {sum}");
     }
 }

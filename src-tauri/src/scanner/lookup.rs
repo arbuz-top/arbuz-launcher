@@ -1,4 +1,5 @@
-//! Проверка хеша мода в каталогах (Modrinth по SHA-256, CurseForge по SHA-1).
+//! Проверка хеша мода в каталогах (Modrinth и CurseForge, обе по SHA-1:
+//! Modrinth принимает только sha1/sha512, CurseForge — sha1/sha512/md5).
 //!
 //! Ошибки сети не роняют сканирование: хеш считается «не найденным»,
 //! а признак недоступности сети возвращается наружу для честного сообщения
@@ -17,17 +18,18 @@ pub(crate) struct LookupResult {
 }
 
 /// Ищет хеш в Modrinth (`version_file`) и, если задан ключ CurseForge,
-/// в CurseForge (`files` по sha1). Не паникует и не возвращает Err.
+/// в CurseForge (`files`). Обе проверки идут по sha1. Не паникует и не
+/// возвращает Err.
 pub(crate) async fn by_hash(
     http: &reqwest::Client,
-    sha256: &str,
     sha1: &str,
     cf_key: Option<&str>,
 ) -> LookupResult {
     let mut out = LookupResult::default();
 
     let modrinth = async {
-        let url = format!("{MODRINTH}/version_file/{sha256}?algorithm=sha256");
+        // Modrinth знает только sha1/sha512 — sha256 он честно отвечает 404.
+        let url = format!("{MODRINTH}/version_file/{sha1}?algorithm=sha1");
         match http.get(&url).send().await {
             Ok(r) if r.status().is_success() => {
                 let v: serde_json::Value = r.json().await.unwrap_or_default();
@@ -90,15 +92,13 @@ pub(crate) async fn by_hash(
 mod tests {
     use super::*;
 
-    /// Живая проверка против Modrinth: известный файл sodium.
+    /// Живая проверка против Modrinth: несуществующий sha1 не находится.
     #[tokio::test]
     #[ignore = "ходит в сеть"]
-    async fn modrinth_finds_known_hash() {
+    async fn modrinth_rejects_unknown_hash() {
         let http = reqwest::Client::new();
-        // sha256 известного релиза sodium; если устарел — тест просто
-        // проверит, что ответ разбирается без паники.
-        let sha256 = "0000000000000000000000000000000000000000000000000000000000000000";
-        let r = by_hash(&http, sha256, "", None).await;
+        let sha1 = "0000000000000000000000000000000000000000";
+        let r = by_hash(&http, sha1, None).await;
         assert!(!r.modrinth_found, "пустой хеш не должен находиться");
     }
 }

@@ -18,6 +18,7 @@ import { Avatar, IUp, RamSlider, Seg, Toggle } from './Controls';
 import { ContentTab } from './ContentTab';
 import { ConsoleTab } from './ConsoleTab';
 import { PackTab } from './PackTab';
+import { ScannerTab } from './ScannerTab';
 import { ScreenshotsTab } from './ScreenshotsTab';
 import { UpdatesTab } from './UpdatesTab';
 import { WorldsTab } from './WorldsTab';
@@ -32,6 +33,7 @@ const SECS: [Sec, string][] = [
   ['m', 'Миры'],
   ['v', 'Консоль'],
   ['s', 'Скриншоты'],
+  ['sc', 'Безопасность'],
 ];
 
 export function InstanceSettings({ inst }: { inst: Instance }) {
@@ -431,6 +433,9 @@ export function InstanceSettings({ inst }: { inst: Instance }) {
     body = <WorldsTab inst={inst} />;
   } else if (s.sec === 'v') {
     body = <ConsoleTab inst={inst} />;
+  } else if (s.sec === 'sc') {
+    body = <ScannerTab inst={inst} />;
+
   } else {
     body = <ScreenshotsTab inst={inst} />;
   }
@@ -452,7 +457,7 @@ export function InstanceSettings({ inst }: { inst: Instance }) {
           </div>
         ))}
       </div>
-      <div style={{ flex: 1, minWidth: 0, maxWidth: ['c', 'p', 'm', 's', 'v'].includes(s.sec) ? 'none' : 640 }}>{body}</div>
+      <div style={{ flex: 1, minWidth: 0, maxWidth: ['c', 'p', 'm', 's', 'v', 'sc'].includes(s.sec) ? 'none' : 640 }}>{body}</div>
     </div>
   );
 }
