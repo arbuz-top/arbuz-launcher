@@ -1,7 +1,7 @@
-import { memo, useMemo, useState, type CSSProperties } from 'react';
+import { memo, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { art, artCols, pi } from '../lib/art';
 import type { Instance } from '../lib/api';
-import { api } from '../lib/api';
+import { api, type PinnedServer } from '../lib/api';
 import { fmtHours, fmtRelative, gb } from '../lib/format';
 import { playInstance, stat } from '../lib/launch';
 import { LOADER_LABEL } from '../lib/labels';
@@ -50,6 +50,21 @@ export const PlayTab = memo(function PlayTab({ inst }: { inst: Instance }) {
     const max = Math.max(1, ...out);
     return out.map((v) => 8 + Math.round((v / max) * 26));
   }, [inst.playtimeDays]);
+
+  // Закреплённые серверы профиля: быстрый вход прямо из лаунчера.
+  const [pinned, setPinned] = useState<PinnedServer[]>([]);
+  useEffect(() => {
+    let alive = true;
+    void api
+      .pinnedServers(inst.id)
+      .then((list) => {
+        if (alive) setPinned(list);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [inst.id, s.live[inst.id]]);
 
   // Плитка «Последний мир»: бэкенд уже отсортировал миры по свежести.
   const lastWorld = s.worlds[0] ?? null;
@@ -203,6 +218,27 @@ export const PlayTab = memo(function PlayTab({ inst }: { inst: Instance }) {
             )}
           </div>
         </div>
+        {pinned.length > 0 && (
+          <div className="tile t2" style={{ flexDirection: 'column', '--i': 1 } as CSSProperties}>
+            <div className="lb">{t('Быстрый вход на сервер')}</div>
+            <div style={{ flex: 1, overflowY: 'auto', marginTop: 6 }}>
+              {pinned.slice(0, 4).map((sv) => (
+                <button
+                  key={sv.ip}
+                  className="btn sm"
+                  style={{ display: 'block', width: '100%', marginTop: 6, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                  title={sv.ip}
+                  onClick={() => void playInstance(inst.id, null, sv.ip)}
+                >
+                  {sv.name}
+                </button>
+              ))}
+            </div>
+            <div className="hint" style={{ marginTop: 6 }}>
+              {t('Закреплённые серверы — в разделе «Серверы»')}
+            </div>
+          </div>
+        )}
         <div className="tile t2" style={{ flexDirection: 'column', '--i': 1 } as CSSProperties}>
           <div className="lb">{t('Контент')}</div>
           <div className="big">{contentCount}</div>
