@@ -8,7 +8,7 @@
 //! вердикт сканера ИИ изменить не может — ни score, ни уровень.
 
 use crate::ai;
-use crate::error::{err, Res};
+use crate::error::Res;
 use serde::Serialize;
 use std::time::Instant;
 

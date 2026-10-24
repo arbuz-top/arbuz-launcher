@@ -364,6 +364,8 @@ pub struct Config {
     /// ИИ-этап сканера: заметки по подозрительным модам (фрагменты
     /// уходят на сторонний сервис — предупреждение в настройках).
     pub ai_scanner: bool,
+    /// URL статичного JSON со списком серверов (формат — в README).
+    pub servers_url: String,
     pub curseforge_api_key: String,
     /// Экспериментально: ИИ-ассистент сборок по промпту.
     pub ai_builder: bool,
@@ -407,6 +409,7 @@ impl Default for Config {
             scanner_enabled: false,
             scanner_mode: "normal".into(),
             ai_scanner: false,
+            servers_url: String::new(),
             curseforge_api_key: String::new(),
             ai_builder: true,
             ai_pack_limit: 0,
@@ -463,6 +466,12 @@ impl Config {
                 break;
             };
             self.moves.remove(&k);
+        }
+        self.servers_url = self.servers_url.trim().chars().take(500).collect();
+        if !self.servers_url.is_empty()
+            && !(self.servers_url.starts_with("https://") || self.servers_url.starts_with("http://"))
+        {
+            self.servers_url = String::new();
         }
         if let Some(sync) = &mut self.sync {
             if sync.master.len() != 32

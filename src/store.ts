@@ -6,7 +6,7 @@ import type { ArtTheme } from './lib/art';
 import { DEFAULT_CUSTOM, normStyle } from './lib/theme';
 import { cachedAnim } from './lib/anim';
 
-export type View = 'home' | 'installs' | 'accounts' | 'p' | 'app' | 'browse' | 'coop';
+export type View = 'home' | 'installs' | 'accounts' | 'p' | 'app' | 'browse' | 'coop' | 'servers';
 export type Tab = 'play' | 'mods' | 'worlds' | 'shots' | 'cfg';
 export type Sec = 'g' | 'j' | 'w' | 'c' | 'p' | 'm' | 's' | 'u' | 'v' | 'sc' | 'sy';
 export type Modal = { p: 'ms' | 'ely' | 'off' | 'lsk' | 'pick' } | null;
@@ -41,6 +41,7 @@ export const DEFAULT_CONFIG: Config = {
   scannerEnabled: false,
   scannerMode: 'normal',
   aiScanner: false,
+  serversUrl: '',
   sync: null,
   curseforgeApiKey: '',
   aiBuilder: true,

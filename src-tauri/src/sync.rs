@@ -7,7 +7,7 @@
 //! версиях Minecraft наборы ключей отличаются. Файл целиком не копируется.
 
 use crate::error::Res;
-use crate::{paths, store};
+use crate::paths;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::Path;

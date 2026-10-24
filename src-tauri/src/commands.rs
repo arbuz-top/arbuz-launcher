@@ -1171,6 +1171,41 @@ pub async fn find_class_owner(
     crate::scanner::classindex::find_owner(&id, &class).await
 }
 
+// ---------------------------------------------------------------------------
+// Каталог серверов (Б3)
+// ---------------------------------------------------------------------------
+
+/// Список серверов из статичного JSON (кэш; refresh — перечитать по URL).
+#[tauri::command]
+pub async fn servers_catalog(state: State<'_, AppState>, refresh: bool) -> Res<Vec<crate::servers::CatalogServer>> {
+    let url = state.config.lock().await.servers_url.clone();
+    crate::servers::catalog(&state.http, &url, refresh).await
+}
+
+/// Server List Ping одного сервера.
+#[tauri::command]
+pub async fn server_ping(ip: String) -> Res<crate::servers::PingInfo> {
+    Ok(crate::servers::ping(&ip).await)
+}
+
+/// Добавляет сервер в servers.dat профиля.
+#[tauri::command]
+pub async fn servers_dat_add(id: String, name: String, ip: String) -> Res<()> {
+    crate::servers::add_server(&id, &name, &ip).await
+}
+
+/// Закреплённые серверы профиля.
+#[tauri::command]
+pub async fn pinned_servers(id: String) -> Res<Vec<crate::servers::PinnedServer>> {
+    crate::servers::pinned_list(&id).await
+}
+
+/// Закрепить сервер на профиле (или снять закрепление).
+#[tauri::command]
+pub async fn pin_server(id: String, name: String, ip: String, pin: bool) -> Res<()> {
+    crate::servers::pin(&id, &name, &ip, pin).await
+}
+
 /// Окончательно удаляет файл из карантина.
 #[tauri::command]
 pub async fn scanner_quarantine_delete(id: String, name: String) -> Res<()> {

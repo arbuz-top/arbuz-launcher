@@ -137,6 +137,8 @@ export interface Config {
   scannerMode: string;
   /** ИИ-этап сканера (заметки по подозрительным модам). */
   aiScanner: boolean;
+  /** URL статичного JSON со списком серверов. */
+  serversUrl: string;
   curseforgeApiKey: string;
   /** Экспериментально: ИИ-ассистент сборок по промпту. */
   aiBuilder: boolean;
@@ -432,6 +434,32 @@ export interface AiNote {
   elapsedMs: number;
 }
 
+/** Сервер из каталога (статичный JSON по URL из настроек). */
+export interface CatalogServer {
+  name: string;
+  ip: string;
+  version: string;
+  mode: string;
+}
+
+/** Результат Server List Ping. */
+export interface PingInfo {
+  host: string;
+  port: number;
+  online: boolean;
+  latencyMs: number;
+  version: string;
+  playersOnline: number;
+  playersMax: number;
+  motd: string;
+}
+
+/** Закреплённый на профиле сервер. */
+export interface PinnedServer {
+  name: string;
+  ip: string;
+}
+
 /** Владелец класса из стектрейса (мод из mods/). */
 export interface ClassOwner {
   name: string;
@@ -654,4 +682,12 @@ export const api = {
   syncMasterOptions: () => invoke<Record<string, string>>('sync_master_options'),
   findClassOwner: (id: string, cls: string) =>
     invoke<ClassOwner | null>('find_class_owner', { id, class: cls }),
+
+  serversCatalog: (refresh: boolean) => invoke<CatalogServer[]>('servers_catalog', { refresh }),
+  serverPing: (ip: string) => invoke<PingInfo>('server_ping', { ip }),
+  serversDatAdd: (id: string, name: string, ip: string) =>
+    invoke<void>('servers_dat_add', { id, name, ip }),
+  pinnedServers: (id: string) => invoke<PinnedServer[]>('pinned_servers', { id }),
+  pinServer: (id: string, name: string, ip: string, pin: boolean) =>
+    invoke<void>('pin_server', { id, name, ip, pin }),
 };

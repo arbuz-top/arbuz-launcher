@@ -19,6 +19,7 @@ mod packs;
 mod paths;
 mod prism;
 mod sandbox;
+mod servers;
 mod scanner;
 mod sync;
 mod skins;
@@ -225,6 +226,11 @@ pub fn run() {
             commands::ai_scan_note,
             commands::sync_master_options,
             commands::find_class_owner,
+            commands::servers_catalog,
+            commands::server_ping,
+            commands::servers_dat_add,
+            commands::pinned_servers,
+            commands::pin_server,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
