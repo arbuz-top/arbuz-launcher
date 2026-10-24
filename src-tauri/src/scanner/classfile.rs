@@ -15,6 +15,9 @@ use std::collections::HashSet;
 /// архивов-пустышек с миллионом констант.
 const MAX_STRINGS: usize = 4096;
 
+/// Максимум int-констант из пула (для правила отложенного запуска).
+const MAX_INTS: usize = 512;
+
 /// Ссылка на метод из constant pool.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct MethodCall {
@@ -44,12 +47,19 @@ pub(crate) struct ClassData {
     pub interfaces: Vec<String>,
     /// Уникальные строковые константы в порядке появления.
     pub strings: Vec<String>,
+    /// Классы, упомянутые в пуле (ClassInfo): цели @Mixin, ссылки на
+    /// Unsafe, скриптовые движки и т.п.
+    pub class_refs: Vec<String>,
     /// Ссылки на методы (включая interface method ref).
     pub method_calls: Vec<MethodCall>,
     /// Ссылки на поля.
     pub field_refs: Vec<FieldRef>,
     /// Имена объявленных методов — для эвристики обфускации (a/b/c).
     pub declared_methods: Vec<String>,
+    /// Число методов с флагом native (JNI).
+    pub native_methods: usize,
+    /// Int-константы пула (например, аргументы Thread.sleep).
+    pub int_constants: Vec<i32>,
     /// major version class-файла.
     pub major_version: u16,
 }
@@ -75,9 +85,17 @@ pub(crate) fn parse(bytes: &[u8]) -> Option<ClassData> {
     for item in cf.constantpool_iter() {
         use cafebabe::constant_pool::{ConstantPoolItem, LiteralConstant};
         match item {
+            ConstantPoolItem::ClassInfo(name) => {
+                push_string(&name, &mut data.class_refs);
+            }
             ConstantPoolItem::LiteralConstant(LiteralConstant::String(s)) => {
                 if data.strings.len() < MAX_STRINGS {
                     push_string(&s, &mut data.strings);
+                }
+            }
+            ConstantPoolItem::LiteralConstant(LiteralConstant::Integer(v)) => {
+                if data.int_constants.len() < MAX_INTS {
+                    data.int_constants.push(v);
                 }
             }
             ConstantPoolItem::MethodRef(r) | ConstantPoolItem::InterfaceMethodRef(r) => {
@@ -99,6 +117,9 @@ pub(crate) fn parse(bytes: &[u8]) -> Option<ClassData> {
     }
 
     for m in &cf.methods {
+        if m.access_flags.contains(cafebabe::MethodAccessFlags::NATIVE) {
+            data.native_methods += 1;
+        }
         data.declared_methods.push(m.name.to_string());
     }
     Some(data)
@@ -177,6 +198,32 @@ mod tests {
         assert_eq!(d.method_calls.len(), 1);
         assert_eq!(d.method_calls[0].class, "javax/script/Invocable");
         assert_eq!(d.method_calls[0].name, "invokeFunction");
+    }
+
+    #[test]
+    fn native_methods_and_int_constants() {
+        let bytes = ClassBuilder::new("com/example/Nat")
+            .native_method("doThings", "()V")
+            .int_constant(3_600_000)
+            .build();
+        let d = parse(&bytes).expect("class");
+        assert_eq!(d.native_methods, 1);
+        assert_eq!(d.int_constants, vec![3_600_000]);
+    }
+
+    #[test]
+    fn class_refs_are_collected() {
+        // @Mixin(Target.class) хранит цель как ClassInfo, а не строку.
+        let bytes = ClassBuilder::new("com/example/MixinSession")
+            .interface("org/spongepowered/asm/mixin/Mixin")
+            .method_ref(
+                "net/minecraft/util/Session",
+                "getToken",
+                "()Ljava/lang/String;",
+            )
+            .build();
+        let d = parse(&bytes).expect("class");
+        assert!(d.class_refs.iter().any(|c| c == "net/minecraft/util/Session"));
     }
 
     #[test]

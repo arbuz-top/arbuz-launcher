@@ -6,6 +6,10 @@
 //! кэшируются по SHA-256, веса и пороги живут в одном конфиге (`scanner.rs`).
 
 pub(crate) mod classfile;
+pub(crate) mod config;
+pub(crate) mod decode;
+pub(crate) mod evidence;
+pub(crate) mod rules;
 
 /// Генератор безобидных синтетических jar/class для юнит-тестов сканера.
 #[cfg(test)]

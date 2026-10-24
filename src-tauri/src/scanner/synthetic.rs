@@ -13,6 +13,7 @@ pub(crate) const MAJOR: u16 = 52;
 
 /// Теги constant pool, которые умеет собирать генератор.
 const TAG_UTF8: u8 = 1;
+const TAG_INT: u8 = 3;
 const TAG_STRING: u8 = 8;
 const TAG_CLASS: u8 = 7;
 const TAG_FIELDREF: u8 = 9;
@@ -31,8 +32,8 @@ pub(crate) struct ClassBuilder {
     name: String,
     super_class: String,
     interfaces: Vec<String>,
-    /// (имя, дескриптор) объявленных методов.
-    methods: Vec<(String, String)>,
+    /// (флаги доступа, имя, дескриптор) объявленных методов.
+    methods: Vec<(u16, String, String)>,
     pool: Vec<PoolEntry>,
     /// Дедупликация: (тег, ключ) -> индекс в пуле (1-based).
     lookup: HashMap<(u8, String), u16>,
@@ -76,6 +77,12 @@ impl ClassBuilder {
         payload.extend_from_slice(&u2(s.len() as u16));
         payload.extend_from_slice(s.as_bytes());
         self.add(TAG_UTF8, s.to_string(), payload)
+    }
+
+    /// CONSTANT_Integer.
+    pub(crate) fn int_constant(mut self, v: i32) -> Self {
+        self.add(TAG_INT, format!("int:{v}"), v.to_be_bytes().to_vec());
+        self
     }
 
     /// CONSTANT_String со значением `s`.
@@ -135,7 +142,13 @@ impl ClassBuilder {
 
     /// Объявляет метод с именем и дескриптором (без кода).
     pub(crate) fn method(mut self, name: &str, desc: &str) -> Self {
-        self.methods.push((name.to_string(), desc.to_string()));
+        self.methods.push((0x0001, name.to_string(), desc.to_string()));
+        self
+    }
+
+    /// Объявляет native-метод (флаг ACC_NATIVE).
+    pub(crate) fn native_method(mut self, name: &str, desc: &str) -> Self {
+        self.methods.push((0x0101, name.to_string(), desc.to_string()));
         self
     }
 
@@ -146,9 +159,9 @@ impl ClassBuilder {
         let interfaces = self.interfaces.clone();
         let ifaces: Vec<u16> = interfaces.iter().map(|n| self.class(n)).collect();
         let methods = self.methods.clone();
-        let method_info: Vec<(u16, u16)> = methods
+        let method_info: Vec<(u16, u16, u16)> = methods
             .iter()
-            .map(|(n, d)| (self.utf8(n), self.utf8(d)))
+            .map(|(f, n, d)| (*f, self.utf8(n), self.utf8(d)))
             .collect();
 
         let mut out = Vec::with_capacity(256);
@@ -168,8 +181,8 @@ impl ClassBuilder {
         }
         out.extend_from_slice(&u2(0)); // fields_count
         out.extend_from_slice(&u2(method_info.len() as u16));
-        for (n, d) in method_info {
-            out.extend_from_slice(&u2(0x0001)); // public
+        for (flags, n, d) in method_info {
+            out.extend_from_slice(&u2(flags));
             out.extend_from_slice(&u2(n));
             out.extend_from_slice(&u2(d));
             out.extend_from_slice(&u2(0)); // attributes_count
