@@ -37,6 +37,8 @@ export interface Instance {
   pack?: PackRef | null;
   /** Своя папка игры (`.minecraft`); null — `instances/<id>/minecraft`. */
   gameDir?: string | null;
+  /** Режим сканера модов для профиля: 'normal' | 'strict' | 'paranoid' | null (глобальный). */
+  scannerMode: string | null;
 }
 
 /** Источник сборки профиля. */
@@ -129,6 +131,10 @@ export interface Config {
   hideEmpty: boolean;
   modIsolationEnabled: boolean;
   modIsolationLevel: string;
+  /** Сканер модов перед запуском игры. */
+  scannerEnabled: boolean;
+  /** Режим сканера: 'normal' | 'strict' | 'paranoid'. */
+  scannerMode: string;
   curseforgeApiKey: string;
   /** Экспериментально: ИИ-ассистент сборок по промпту. */
   aiBuilder: boolean;
@@ -414,6 +420,30 @@ export interface NewsItem {
   imageUrl: string | null;
 }
 
+/** Одна находка сканера модов. */
+export interface ScanFinding {
+  rule: string;
+  /** Машиночитаемый код: r6_native, r12_agent… */
+  code: string;
+  weight: number;
+  hard: boolean;
+  place: string;
+  what: string;
+}
+
+/** Отчёт сканера по одному файлу контента. */
+export interface ModReport {
+  file: string;
+  name: string;
+  sha256: string;
+  score: number;
+  level: 'ok' | 'suspicious' | 'danger' | string;
+  findings: ScanFinding[];
+  knownHash: boolean;
+  modrinthProject: string | null;
+  offlineLookup: boolean;
+}
+
 /** Текстура скина аккаунта: data-URL и её размеры в пикселях. */
 export interface Skin {
   url: string;
@@ -488,8 +518,8 @@ export const api = {
   msCancel: () => invoke<void>('ms_cancel'),
   setActiveAccount: (id: string) => invoke<void>('set_active_account', { id }),
   removeAccount: (id: string) => invoke<void>('remove_account', { id }),
-  launchInstance: (id: string, world: string | null, server: string | null = null) =>
-    invoke<void>('launch_instance', { id, world, server }),
+  launchInstance: (id: string, world: string | null, server: string | null = null, scanOverride?: boolean) =>
+    invoke<void>('launch_instance', { id, world, server, scanOverride: scanOverride ?? false }),
   stopInstance: (id: string) => invoke<void>('stop_instance', { id }),
 
   listContent: (id: string) => invoke<ContentItem[]>('list_content', { id }),
@@ -581,4 +611,12 @@ export const api = {
   p2pStop: () => invoke<void>('p2p_stop'),
   p2pActive: () => invoke<P2pShare | null>('p2p_active'),
   checkLauncherUpdate: () => invoke<LauncherUpdate | null>('check_launcher_update'),
+  scanMods: (id: string) => invoke<ModReport[]>('scan_mods', { id }),
+  scannerAllowMod: (id: string, file: string, allow: boolean) =>
+    invoke<void>('scanner_allow_mod', { id, file, allow }),
+  scannerQuarantine: (id: string) => invoke<string[]>('scanner_quarantine', { id }),
+  scannerQuarantineRestore: (id: string, name: string) =>
+    invoke<void>('scanner_quarantine_restore', { id, name }),
+  scannerQuarantineDelete: (id: string, name: string) =>
+    invoke<void>('scanner_quarantine_delete', { id, name }),
 };

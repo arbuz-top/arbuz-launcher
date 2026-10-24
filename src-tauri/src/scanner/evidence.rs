@@ -3,20 +3,14 @@
 //! метаданные) — данные ресурсы остаются нетронутыми, лимиты защищают от
 //! zip-бомб и архивов с десятками тысяч записей.
 
-// Оркестратор сканера подключит сбор улик на этапе скоринга.
-#![allow(dead_code)]
-
 use super::classfile::{self, ClassData};
 use super::config::Limits;
 use std::collections::BTreeMap;
 use std::io::Read;
-use std::path::Path;
 
 /// Всё, что правила сканера могут посмотреть в одном jar.
 #[derive(Clone, Debug, Default)]
 pub(crate) struct JarEvidence {
-    /// Имя файла jar (для сообщений).
-    pub file: String,
     /// Имена записей архива (прямые слэши, без каталогов).
     pub entries: Vec<String>,
     /// Разобранные class-файлы.
@@ -76,11 +70,8 @@ fn parse_manifest(raw: &[u8]) -> BTreeMap<String, String> {
 }
 
 /// Собирает улики из байтов jar.
-pub(crate) fn evidence_from_bytes(file: &str, bytes: &[u8], limits: &Limits) -> JarEvidence {
-    let mut ev = JarEvidence {
-        file: file.to_string(),
-        ..JarEvidence::default()
-    };
+pub(crate) fn evidence_from_bytes(bytes: &[u8], limits: &Limits) -> JarEvidence {
+    let mut ev = JarEvidence::default();
     if bytes.len() as u64 > limits.max_jar_bytes {
         ev.over_limits = true;
         return ev;
@@ -154,25 +145,6 @@ pub(crate) fn evidence_from_bytes(file: &str, bytes: &[u8], limits: &Limits) -> 
     ev
 }
 
-/// Читает jar с диска и собирает улики. Файл больше лимита не читается.
-pub(crate) fn evidence_from_file(path: &Path, limits: &Limits) -> std::io::Result<JarEvidence> {
-    let file = path
-        .file_name()
-        .and_then(|s| s.to_str())
-        .unwrap_or_default()
-        .to_string();
-    let meta = std::fs::metadata(path)?;
-    if meta.len() > limits.max_jar_bytes {
-        return Ok(JarEvidence {
-            file,
-            over_limits: true,
-            ..JarEvidence::default()
-        });
-    }
-    let bytes = std::fs::read(path)?;
-    Ok(evidence_from_bytes(&file, &bytes, limits))
-}
-
 #[cfg(test)]
 mod tests {
     use super::super::synthetic::{jar, ClassBuilder};
@@ -194,7 +166,7 @@ mod tests {
             ("META-INF/MANIFEST.MF".into(), manifest.to_vec()),
             ("fabric.mod.json".into(), meta.to_vec()),
         ]);
-        let ev = evidence_from_bytes("foo.jar", &bytes, &limits());
+        let ev = evidence_from_bytes(&bytes, &limits());
         assert_eq!(ev.classes.len(), 1);
         assert_eq!(ev.classes[0].strings, vec!["hello"]);
         assert_eq!(
@@ -209,7 +181,7 @@ mod tests {
     #[test]
     fn broken_class_is_counted() {
         let bytes = jar(&[("bad/Broken.class".into(), b"garbage not class".to_vec())]);
-        let ev = evidence_from_bytes("bad.jar", &bytes, &limits());
+        let ev = evidence_from_bytes(&bytes, &limits());
         assert_eq!(ev.broken_classes, 1);
         assert!(ev.classes.is_empty());
     }
@@ -225,7 +197,7 @@ mod tests {
             max_entries: 10,
             ..Limits::default()
         };
-        let ev = evidence_from_bytes("bomb.jar", &bytes, &lim);
+        let ev = evidence_from_bytes(&bytes, &lim);
         assert!(ev.over_limits);
         assert!(ev.entries.len() <= 10);
     }
@@ -241,13 +213,13 @@ mod tests {
             max_uncompressed_bytes: 1024,
             ..Limits::default()
         };
-        let ev = evidence_from_bytes("bomb2.jar", &bytes, &lim);
+        let ev = evidence_from_bytes(&bytes, &lim);
         assert!(ev.over_limits);
     }
 
     #[test]
     fn bad_archive_sets_zip_error() {
-        let ev = evidence_from_bytes("x.jar", b"definitely not a zip", &limits());
+        let ev = evidence_from_bytes(b"definitely not a zip", &limits());
         assert!(ev.zip_error);
         assert!(ev.entries.is_empty());
     }
@@ -256,7 +228,7 @@ mod tests {
     fn mods_toml_metadata_is_parsed() {
         let toml = b"[[mods]]\nmodId=\"foo\"\nversion=\"1.0\"\ndisplayName=\"Foo\"\n";
         let bytes = jar(&[("META-INF/mods.toml".into(), toml.to_vec())]);
-        let ev = evidence_from_bytes("foo.jar", &bytes, &limits());
+        let ev = evidence_from_bytes(&bytes, &limits());
         assert!(ev.mods_toml.is_some());
     }
 }

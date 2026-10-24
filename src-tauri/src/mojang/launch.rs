@@ -152,6 +152,7 @@ pub async fn launch(
     id: String,
     world: Option<String>,
     server: Option<String>,
+    scan_override: bool,
 ) -> Res<()> {
     // A. Профиль и активный аккаунт.
     let inst = store::read_instance(&id).await?;
@@ -171,7 +172,7 @@ pub async fn launch(
         running.insert(id.clone(), kill_tx);
     }
 
-    let result = run(&app, state, &id, &inst, &acc, world, server, &mut kill_rx).await;
+    let result = run(&app, state, &id, &inst, &acc, world, server, scan_override, &mut kill_rx).await;
     state.running.lock().await.remove(&id);
 
     match result {
@@ -199,7 +200,7 @@ pub async fn launch(
     }
 }
 
-/// Конвейер: файлы, библиотеки, ассеты, Java, аргументы, процесс, учёт времени.
+/// Конвейер: сканер, файлы, библиотеки, ассеты, Java, аргументы, процесс, учёт времени.
 async fn run(
     app: &AppHandle,
     state: &AppState,
@@ -208,10 +209,17 @@ async fn run(
     acc: &Account,
     world: Option<String>,
     server: Option<String>,
+    scan_override: bool,
     kill_rx: &mut tokio::sync::oneshot::Receiver<()>,
 ) -> Res<Outcome> {
     // E. Начало.
     let _ = app.emit("progress", Progress { id: id.to_string(), pct: 0.0 });
+
+    // D. Сканер модов: до скачивания чего-либо. Пользователь мог явно
+    // подтвердить «запустить всё равно» — тогда гейт пропускается.
+    if !scan_override {
+        crate::scanner::launch_gate(state, id).await?;
+    }
 
     // F. (0 → 30) version.json и client jar.
     // Для модового загрузчика сначала ставим его профиль и сливаем с vanilla.

@@ -216,6 +216,11 @@ pub fn run() {
             commands::p2p_new_code,
             commands::p2p_notice,
             commands::check_launcher_update,
+            commands::scan_mods,
+            commands::scanner_allow_mod,
+            commands::scanner_quarantine,
+            commands::scanner_quarantine_restore,
+            commands::scanner_quarantine_delete,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

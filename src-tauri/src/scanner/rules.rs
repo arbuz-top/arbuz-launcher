@@ -5,8 +5,6 @@
 //! `hard = true` у находок правил 1–5 и базы малвари: их не гасит совпадение
 //! хеша с Modrinth.
 
-// Правила подключит оркестратор сканера на этапе скоринга.
-#![allow(dead_code)]
 
 use super::classfile::ClassData;
 use super::config::ScannerConfig;
@@ -31,6 +29,9 @@ const MAX_FINDINGS: usize = 64;
 pub(crate) struct Finding {
     /// Идентификатор правила: «R1»..«R22».
     pub rule: &'static str,
+    /// Машиночитаемый код находки: «r6_native», «r12_agent» и т.п. —
+    /// по нему режимы решают, блокировать ли запуск при любой находке.
+    pub code: &'static str,
     pub weight: i32,
     /// Находки правил 1–5 и известной малвари не гасятся Modrinth-хешем.
     pub hard: bool,
@@ -64,6 +65,7 @@ pub(crate) struct ScanContext {
 struct Sig {
     needle: &'static str,
     rule: &'static str,
+    code: &'static str,
     kind: &'static str,
 }
 
@@ -71,47 +73,47 @@ struct Sig {
 /// Ими же прогоняются декодированные base64/hex/XOR-строки (правило 8).
 const SIGS: &[Sig] = &[
     // R1: каналы вывода данных
-    Sig { needle: "discord.com/api/webhooks", rule: "R1", kind: "вебхук Discord" },
-    Sig { needle: "discordapp.com/api/webhooks", rule: "R1", kind: "вебхук Discord" },
-    Sig { needle: "ptb.discord.com/api/webhooks", rule: "R1", kind: "вебхук Discord (ptb)" },
-    Sig { needle: "canary.discord.com/api/webhooks", rule: "R1", kind: "вебхук Discord (canary)" },
-    Sig { needle: "api.telegram.org/bot", rule: "R1", kind: "Telegram-бот" },
-    Sig { needle: "pastebin.com", rule: "R1", kind: "pastebin" },
-    Sig { needle: "hastebin.com", rule: "R1", kind: "hastebin" },
-    Sig { needle: "paste.ee", rule: "R1", kind: "paste.ee" },
-    Sig { needle: "transfer.sh", rule: "R1", kind: "transfer.sh" },
-    Sig { needle: "ngrok", rule: "R1", kind: "туннель ngrok" },
-    Sig { needle: "iplogger", rule: "R1", kind: "iplogger" },
-    Sig { needle: "2no.co", rule: "R1", kind: "iplogger" },
-    Sig { needle: "ipify.org", rule: "R1", kind: "ipify" },
+    Sig { needle: "discord.com/api/webhooks", rule: "R1", code: "r1_exfil", kind: "вебхук Discord" },
+    Sig { needle: "discordapp.com/api/webhooks", rule: "R1", code: "r1_exfil", kind: "вебхук Discord" },
+    Sig { needle: "ptb.discord.com/api/webhooks", rule: "R1", code: "r1_exfil", kind: "вебхук Discord (ptb)" },
+    Sig { needle: "canary.discord.com/api/webhooks", rule: "R1", code: "r1_exfil", kind: "вебхук Discord (canary)" },
+    Sig { needle: "api.telegram.org/bot", rule: "R1", code: "r1_exfil", kind: "Telegram-бот" },
+    Sig { needle: "pastebin.com", rule: "R1", code: "r1_exfil", kind: "pastebin" },
+    Sig { needle: "hastebin.com", rule: "R1", code: "r1_exfil", kind: "hastebin" },
+    Sig { needle: "paste.ee", rule: "R1", code: "r1_exfil", kind: "paste.ee" },
+    Sig { needle: "transfer.sh", rule: "R1", code: "r1_exfil", kind: "transfer.sh" },
+    Sig { needle: "ngrok", rule: "R1", code: "r1_exfil", kind: "туннель ngrok" },
+    Sig { needle: "iplogger", rule: "R1", code: "r1_exfil", kind: "iplogger" },
+    Sig { needle: "2no.co", rule: "R1", code: "r1_exfil", kind: "iplogger" },
+    Sig { needle: "ipify.org", rule: "R1", code: "r1_exfil", kind: "ipify" },
     // R2: кража данных
-    Sig { needle: "launcher_accounts.json", rule: "R2", kind: "файл аккаунтов лаунчера" },
-    Sig { needle: "launcher_profiles.json", rule: "R2", kind: "профили лаунчера" },
-    Sig { needle: "tdata", rule: "R2", kind: "сессии Telegram (tdata)" },
-    Sig { needle: "wallet.dat", rule: "R2", kind: "кошелёк Bitcoin" },
-    Sig { needle: "keystore/utc--", rule: "R2", kind: "keystore Ethereum" },
-    Sig { needle: "ethereum/keystore", rule: "R2", kind: "keystore Ethereum" },
-    Sig { needle: "exodus", rule: "R2", kind: "кошелёк Exodus" },
-    Sig { needle: "metamask", rule: "R2", kind: "кошелёк MetaMask" },
-    Sig { needle: "login data", rule: "R2", kind: "пароли браузера" },
-    Sig { needle: "\\local state", rule: "R2", kind: "ключи шифрования браузера" },
+    Sig { needle: "launcher_accounts.json", rule: "R2", code: "r2_theft", kind: "файл аккаунтов лаунчера" },
+    Sig { needle: "launcher_profiles.json", rule: "R2", code: "r2_theft", kind: "профили лаунчера" },
+    Sig { needle: "tdata", rule: "R2", code: "r2_theft", kind: "сессии Telegram (tdata)" },
+    Sig { needle: "wallet.dat", rule: "R2", code: "r2_theft", kind: "кошелёк Bitcoin" },
+    Sig { needle: "keystore/utc--", rule: "R2", code: "r2_theft", kind: "keystore Ethereum" },
+    Sig { needle: "ethereum/keystore", rule: "R2", code: "r2_theft", kind: "keystore Ethereum" },
+    Sig { needle: "exodus", rule: "R2", code: "r2_theft", kind: "кошелёк Exodus" },
+    Sig { needle: "metamask", rule: "R2", code: "r2_theft", kind: "кошелёк MetaMask" },
+    Sig { needle: "login data", rule: "R2", code: "r2_theft", kind: "пароли браузера" },
+    Sig { needle: "\\local state", rule: "R2", code: "r2_theft", kind: "ключи шифрования браузера" },
     // R3: запуск процессов (строковые команды)
-    Sig { needle: "powershell -enc", rule: "R3", kind: "powershell -enc" },
-    Sig { needle: "-encodedcommand", rule: "R3", kind: "powershell -EncodedCommand" },
-    Sig { needle: "cmd /c", rule: "R3", kind: "cmd /c" },
-    Sig { needle: "mshta", rule: "R3", kind: "mshta" },
-    Sig { needle: "certutil", rule: "R3", kind: "certutil" },
-    Sig { needle: "bitsadmin", rule: "R3", kind: "bitsadmin" },
-    Sig { needle: "schtasks", rule: "R3", kind: "schtasks" },
-    Sig { needle: "currentversion\\run", rule: "R3", kind: "автозапуск через реестр" },
-    Sig { needle: "currentversion/run", rule: "R3", kind: "автозапуск через реестр" },
-    Sig { needle: "reg add ", rule: "R3", kind: "запись в реестр" },
+    Sig { needle: "powershell -enc", rule: "R3", code: "r3_exec", kind: "powershell -enc" },
+    Sig { needle: "-encodedcommand", rule: "R3", code: "r3_exec", kind: "powershell -EncodedCommand" },
+    Sig { needle: "cmd /c", rule: "R3", code: "r3_exec", kind: "cmd /c" },
+    Sig { needle: "mshta", rule: "R3", code: "r3_exec", kind: "mshta" },
+    Sig { needle: "certutil", rule: "R3", code: "r3_exec", kind: "certutil" },
+    Sig { needle: "bitsadmin", rule: "R3", code: "r3_exec", kind: "bitsadmin" },
+    Sig { needle: "schtasks", rule: "R3", code: "r3_exec", kind: "schtasks" },
+    Sig { needle: "currentversion\\run", rule: "R3", code: "r3_exec", kind: "автозапуск через реестр" },
+    Sig { needle: "currentversion/run", rule: "R3", code: "r3_exec", kind: "автозапуск через реестр" },
+    Sig { needle: "reg add ", rule: "R3", code: "r3_exec", kind: "запись в реестр" },
     // R16: фингерпринт
-    Sig { needle: "tasklist", rule: "R16", kind: "список процессов (tasklist)" },
-    Sig { needle: "wmic ", rule: "R16", kind: "wmic" },
-    Sig { needle: "reg query", rule: "R16", kind: "чтение реестра" },
+    Sig { needle: "tasklist", rule: "R16", code: "r16_fingerprint", kind: "список процессов (tasklist)" },
+    Sig { needle: "wmic ", rule: "R16", code: "r16_fingerprint", kind: "wmic" },
+    Sig { needle: "reg query", rule: "R16", code: "r16_fingerprint", kind: "чтение реестра" },
     // R15: движки
-    Sig { needle: "nashorn", rule: "R15", kind: "Nashorn" },
+    Sig { needle: "nashorn", rule: "R15", code: "r15_script", kind: "Nashorn" },
 ];
 
 /// Маркеры для XOR-поиска: подстроки правил 1 и 3.
@@ -180,7 +182,16 @@ impl Sink {
         self.findings.iter().filter(|f| f.rule == rule).count()
     }
 
-    fn push(&mut self, rule: &'static str, weight: i32, hard: bool, place: &str, what: String) {
+    #[allow(clippy::too_many_arguments)]
+    fn push(
+        &mut self,
+        rule: &'static str,
+        code: &'static str,
+        weight: i32,
+        hard: bool,
+        place: &str,
+        what: String,
+    ) {
         if self.findings.len() >= MAX_FINDINGS {
             return;
         }
@@ -194,6 +205,7 @@ impl Sink {
         }
         self.findings.push(Finding {
             rule,
+            code,
             weight,
             hard,
             place: place.to_string(),
@@ -349,14 +361,14 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
 
     // --- R11: известная малварь (локальная база) ---
     if ctx.known_malware {
-        s.push("R11", w.known_malware_hash, true, "база малвари", "SHA-256 совпадает с известной малварью".into());
+        s.push("R11", "r11_hash", w.known_malware_hash, true, "база малвари", "SHA-256 совпадает с известной малварью".into());
     }
     if !ctx.malware_indicators.is_empty() {
         for c in &ev.classes {
             for ind in &ctx.malware_indicators {
                 let ind = ind.to_ascii_lowercase();
                 if c.strings.iter().any(|str_| str_.to_ascii_lowercase().contains(&ind)) {
-                    s.push("R11", w.malware_indicator, true, &c.name, format!("индикатор малвари «{}»", trunc(ind.trim(), 40)));
+                    s.push("R11", "r11_indicator", w.malware_indicator, true, &c.name, format!("индикатор малвари «{}»", trunc(ind.trim(), 40)));
                     break;
                 }
             }
@@ -370,7 +382,7 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
                 let weight = sig_weight(sig.rule, cfg);
                 let hard = matches!(sig.rule, "R1" | "R2" | "R3");
                 let kind = static_kind(sig.kind);
-                s.push(sig.rule, weight, hard, &c.name, format!("{kind}: {}", trunc(str_, 80)));
+                s.push(sig.rule, sig.code, weight, hard, &c.name, format!("{kind}: {}", trunc(str_, 80)));
             }
         }
     }
@@ -379,7 +391,7 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
     for c in &ev.classes {
         for str_ in &c.strings {
             if RE_URL_IP.is_match(str_) {
-                s.push("R1", w.exfil_channel, true, &c.name, format!("URL с IP-адресом: {}", trunc(str_, 80)));
+                s.push("R1", "r1_exfil", w.exfil_channel, true, &c.name, format!("URL с IP-адресом: {}", trunc(str_, 80)));
             }
         }
     }
@@ -395,10 +407,10 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
                 .iter()
                 .any(|x| lower.contains(x));
             if browser && creds {
-                s.push("R2", w.data_theft, true, &c.name, format!("данные браузера: {}", trunc(str_, 80)));
+                s.push("R2", "r2_theft", w.data_theft, true, &c.name, format!("данные браузера: {}", trunc(str_, 80)));
             }
             if lower.contains("discord") && (lower.contains("local storage") || lower.contains("leveldb")) {
-                s.push("R2", w.data_theft, true, &c.name, "хранилище Discord (Local Storage)".into());
+                s.push("R2", "r2_theft", w.data_theft, true, &c.name, "хранилище Discord (Local Storage)".into());
             }
         }
     }
@@ -406,27 +418,27 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
     // --- R2: скриншоты, буфер обмена, токены ---
     for c in &ev.classes {
         if c.method_calls.iter().any(|m| m.class == "java/awt/Robot" && m.name.starts_with("createScreenCapture")) {
-            s.push("R2", w.data_theft, true, &c.name, "снимок экрана через java.awt.Robot".into());
+            s.push("R2", "r2_theft", w.data_theft, true, &c.name, "снимок экрана через java.awt.Robot".into());
         }
         if c.method_calls.iter().any(|m| m.class == "java/awt/datatransfer/Clipboard" && m.name == "getContents") {
-            s.push("R2", w.data_theft, true, &c.name, "чтение буфера обмена".into());
+            s.push("R2", "r2_theft", w.data_theft, true, &c.name, "чтение буфера обмена".into());
         }
         for m in &c.method_calls {
             if m.name == "getAccessToken" {
-                s.push("R2", w.session_token_access, false, &c.name, format!("getAccessToken ({})", m.class));
+                s.push("R2", "r2_token", w.session_token_access, false, &c.name, format!("getAccessToken ({})", m.class));
             }
             if m.name == "getSession" && (m.class.contains("authlib") || m.class.to_ascii_lowercase().contains("session")) {
-                s.push("R2", w.session_token_access, false, &c.name, format!("getSession ({})", m.class));
+                s.push("R2", "r2_token", w.session_token_access, false, &c.name, format!("getSession ({})", m.class));
             }
         }
     }
 
     // --- R3: запуск процессов (вызовы) ---
     for c in classes_calling(ev, |cl, _| cl == "java/lang/ProcessBuilder") {
-        s.push("R3", w.process_exec, true, &c.name, "запуск процессов через ProcessBuilder".into());
+        s.push("R3", "r3_exec", w.process_exec, true, &c.name, "запуск процессов через ProcessBuilder".into());
     }
     for c in classes_calling(ev, |cl, n| cl == "java/lang/Runtime" && n == "exec") {
-        s.push("R3", w.process_exec, true, &c.name, "запуск процессов через Runtime.exec".into());
+        s.push("R3", "r3_exec", w.process_exec, true, &c.name, "запуск процессов через Runtime.exec".into());
     }
 
     // --- R4: динамическая загрузка кода ---
@@ -442,11 +454,11 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
                 || r == "jdk/internal/unsafe/Unsafe"
         });
         if hit {
-            s.push("R4", w.dynamic_code_load, false, &c.name, "динамическая загрузка кода (ClassLoader/defineClass/Unsafe)".into());
+            s.push("R4", "r4_dynamic", w.dynamic_code_load, false, &c.name, "динамическая загрузка кода (ClassLoader/defineClass/Unsafe)".into());
         }
         // Расшифровка ресурсов в классы: чтение ресурса + строка «*.class».
         if has_call(c, "", "getResourceAsStream") && c.strings.iter().any(|x| x.ends_with(".class")) {
-            s.push("R4", w.dynamic_code_load, false, &c.name, "чтение ресурса с расширением .class (расшифровка классов)".into());
+            s.push("R4", "r4_dynamic", w.dynamic_code_load, false, &c.name, "чтение ресурса с расширением .class (расшифровка классов)".into());
         }
     }
 
@@ -472,7 +484,7 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
             Some(".jar") => has_jar_url = true,
             Some(_) => {
                 has_exec_url = true;
-                s.push("R5", w.executable_download_url_only, true, class, format!("URL исполняемого файла: {}", trunc(u, 80)));
+                s.push("R5", "r5_url", w.executable_download_url_only, true, class, format!("URL исполняемого файла: {}", trunc(u, 80)));
             }
             None => {}
         }
@@ -480,18 +492,18 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
     let writes = ev.classes.iter().any(|c| writes_files(c));
     let runs = ev.classes.iter().any(|c| runs_processes(c));
     if (has_exec_url || has_jar_url) && writes && runs {
-        s.push("R5", w.executable_download, true, "jar", "скачивание файла + запись на диск + запуск процесса".into());
+        s.push("R5", "r5_download", w.executable_download, true, "jar", "скачивание файла + запись на диск + запуск процесса".into());
     }
 
     // --- R6: структура jar ---
     if ev.zip_error {
-        s.push("R6", w.broken_class, false, "архив", "архив повреждён или не открывается".into());
+        s.push("R6", "r6_broken", w.broken_class, false, "архив", "архив повреждён или не открывается".into());
     }
     if ev.over_limits {
-        s.push("R6", w.archive_limits, false, "архив", "превышены лимиты архива (подозрение на zip-бомбу)".into());
+        s.push("R6", "r6_limits", w.archive_limits, false, "архив", "превышены лимиты архива (подозрение на zip-бомбу)".into());
     }
     if ev.entries.iter().any(|e| e.contains("../") || e.starts_with('/')) {
-        s.push("R6", w.path_traversal, false, "архив", "записи с выходом за пределы каталога (../)".into());
+        s.push("R6", "r6_traversal", w.path_traversal, false, "архив", "записи с выходом за пределы каталога (../)".into());
     }
     let mut natives: BTreeSet<&str> = BTreeSet::new();
     let mut jar_in_jar = 0usize;
@@ -513,13 +525,13 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
         }
     }
     for n in natives {
-        s.push("R6", w.native_binaries, false, "архив", format!("нативная библиотека в jar (.{n})"));
+        s.push("R6", "r6_native", w.native_binaries, false, "архив", format!("нативная библиотека в jar (.{n})"));
     }
     if jar_in_jar > 0 {
-        s.push("R6", w.jar_in_jar, false, "архив", format!("jar-in-jar в META-INF/jars ({jar_in_jar} шт., обычно легитимно)"));
+        s.push("R6", "r6_jij", w.jar_in_jar, false, "архив", format!("jar-in-jar в META-INF/jars ({jar_in_jar} шт., обычно легитимно)"));
     }
     if ev.broken_classes > 0 {
-        s.push("R6", w.broken_class, false, "архив", format!("битые class-файлы: {}", ev.broken_classes));
+        s.push("R6", "r6_broken", w.broken_class, false, "архив", format!("битые class-файлы: {}", ev.broken_classes));
     }
 
     // Классы вне пакета modid (R6) — только заметное расхождение.
@@ -537,7 +549,7 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
             })
             .count();
         if outside >= 5 && outside * 3 > ev.classes.len() {
-            s.push("R6", w.classes_outside_modid, false, "архив", format!("большинство классов вне пакета modid «{modid}»"));
+            s.push("R6", "r6_outside", w.classes_outside_modid, false, "архив", format!("большинство классов вне пакета modid «{modid}»"));
         }
     }
 
@@ -593,7 +605,7 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
             reasons.push("непечатаемые строки (зашифрованные данные)");
         }
         if !reasons.is_empty() {
-            s.push("R7", w.obfuscation, false, "jar", format!("сильная обфускация: {}", reasons.join(", ")));
+            s.push("R7", "r7_obfuscation", w.obfuscation, false, "jar", format!("сильная обфускация: {}", reasons.join(", ")));
         }
     }
 
@@ -614,14 +626,14 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
                                     decoded_hit_n += 1;
                                     let hard = matches!(sig.rule, "R1" | "R2" | "R3");
                                     let kind = static_kind(sig.kind);
-                                    s.push(sig.rule, sig_weight(sig.rule, cfg), hard, &c.name, format!("base64 скрывает {kind}: {}", trunc(&text, 60)));
+                                    s.push(sig.rule, sig.code, sig_weight(sig.rule, cfg), hard, &c.name, format!("base64 скрывает {kind}: {}", trunc(&text, 60)));
                                 }
                             }
                         }
                     }
                     if encoded_n < 3 {
                         encoded_n += 1;
-                        s.push("R8", w.encoded_payload, false, &c.name, "закодированные данные (base64)".into());
+                        s.push("R8", "r8_encoded", w.encoded_payload, false, &c.name, "закодированные данные (base64)".into());
                     }
                 }
                 // hex
@@ -634,7 +646,7 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
                                     decoded_hit_n += 1;
                                     let hard = matches!(sig.rule, "R1" | "R2" | "R3");
                                     let kind = static_kind(sig.kind);
-                                    s.push(sig.rule, sig_weight(sig.rule, cfg), hard, &c.name, format!("hex скрывает {kind}: {}", trunc(&text, 60)));
+                                    s.push(sig.rule, sig.code, sig_weight(sig.rule, cfg), hard, &c.name, format!("hex скрывает {kind}: {}", trunc(&text, 60)));
                                 }
                             }
                         }
@@ -644,7 +656,7 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
                 // хватает на реальные обфускаторы, а сканирование дешёвое.
                 if (24..=512).contains(&str_.len()) && !str_.contains("http") && xor_scanned < 200 {
                     if let Some((key, text)) = decode::xor_find_marker(str_, XOR_MARKERS) {
-                        s.push("R1", w.exfil_channel, true, &c.name, format!("XOR(0x{key:02x}) скрывает {}", trunc(&text, 60)));
+                        s.push("R1", "r1_exfil", w.exfil_channel, true, &c.name, format!("XOR(0x{key:02x}) скрывает {}", trunc(&text, 60)));
                     }
                     xor_scanned += 1;
                 }
@@ -668,7 +680,7 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
             }
         }
         for h in unknown.into_iter().take(MAX_PER_RULE) {
-            s.push("R9", w.unknown_domain, false, "jar", format!("обращение к домену вне белого списка: {h}"));
+            s.push("R9", "r9_domain", w.unknown_domain, false, "jar", format!("обращение к домену вне белого списка: {h}"));
         }
     }
 
@@ -682,12 +694,12 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
         };
         for key in ["Premain-Class", "Agent-Class", "Launcher-Agent-Class"] {
             if let Some(v) = get(key) {
-                s.push("R12", w.manifest_agent, false, "MANIFEST.MF", format!("{key}: {}", trunc(&v, 60)));
+                s.push("R12", "r12_agent", w.manifest_agent, false, "MANIFEST.MF", format!("{key}: {}", trunc(&v, 60)));
             }
         }
         if let Some(cp) = get("Class-Path") {
             if cp.contains("http://") || cp.contains("https://") || cp.contains(':') && (cp.contains("/../") || cp.contains("\\")) {
-                s.push("R12", w.manifest_classpath, false, "MANIFEST.MF", format!("подозрительный Class-Path: {}", trunc(&cp, 60)));
+                s.push("R12", "r12_classpath", w.manifest_classpath, false, "MANIFEST.MF", format!("подозрительный Class-Path: {}", trunc(&cp, 60)));
             }
         }
     }
@@ -699,18 +711,18 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
             .iter()
             .any(|s| s.contains(".jar") && (s.contains("mods/") || s.contains("\\mods\\") || s.split('/').any(|p| p == "mods")));
         if mods_jar && writes_files(c) {
-            s.push("R13", w.infect_other_mods, false, &c.name, "запись в jar-файлы папки mods".into());
+            s.push("R13", "r13_infect", w.infect_other_mods, false, &c.name, "запись в jar-файлы папки mods".into());
         }
     }
 
     // --- R14: нативные вызовы ---
     for c in classes_calling(ev, |cl, n| cl == "java/lang/System" && (n == "load" || n == "loadLibrary")) {
-        s.push("R14", w.system_load, false, &c.name, "System.load/loadLibrary".into());
+        s.push("R14", "r14_system_load", w.system_load, false, &c.name, "System.load/loadLibrary".into());
     }
     {
         let native = ev.classes.iter().map(|c| c.native_methods).sum::<usize>();
         if native > 0 {
-            s.push("R14", w.jni_native_methods, false, "jar", format!("native-методы (JNI): {native}"));
+            s.push("R14", "r14_native_methods", w.jni_native_methods, false, "jar", format!("native-методы (JNI): {native}"));
         }
     }
 
@@ -726,7 +738,7 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
         for c in &ev.classes {
             for (class, name) in engines {
                 if c.method_calls.iter().any(|m| m.class == class) || c.class_refs.iter().any(|r| r == class) {
-                    s.push("R15", w.script_engine, false, &c.name, format!("скриптовый движок {name}"));
+                    s.push("R15", "r15_script", w.script_engine, false, &c.name, format!("скриптовый движок {name}"));
                     break;
                 }
             }
@@ -736,12 +748,12 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
     // --- R16: фингерпринт системы ---
     for c in &ev.classes {
         if has_call(c, "java/lang/System", "getenv") {
-            s.push("R16", w.fingerprinting, false, &c.name, "чтение переменных окружения".into());
+            s.push("R16", "r16_fingerprint", w.fingerprinting, false, &c.name, "чтение переменных окружения".into());
         }
         if has_call(c, "java/lang/System", "getProperty") {
             let keys = ["user.name", "os.name", "user.home", "user.dir"];
             if c.strings.iter().any(|s| keys.iter().any(|k| s == k)) {
-                s.push("R16", w.fingerprinting, false, &c.name, "чтение системных свойств (user.name/os.name)".into());
+                s.push("R16", "r16_fingerprint", w.fingerprinting, false, &c.name, "чтение системных свойств (user.name/os.name)".into());
             }
         }
     }
@@ -751,7 +763,7 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
         if has_call(c, "java/lang/Thread", "sleep")
             && c.int_constants.iter().any(|&v| v >= 3_600_000)
         {
-            s.push("R17", w.delayed_execution, false, &c.name, "Thread.sleep на час и больше".into());
+            s.push("R17", "r17_delayed", w.delayed_execution, false, &c.name, "Thread.sleep на час и больше".into());
         }
     }
 
@@ -763,10 +775,10 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
             .any(|r| r.starts_with("com/sun/tools/attach") || r.starts_with("com/sun/jdi"))
             || c.strings.iter().any(|s| s.contains("isDebuggerConnected"));
         if vm {
-            s.push("R18", w.anti_analysis, false, &c.name, "проверка отладчика/VM".into());
+            s.push("R18", "r18_vm", w.anti_analysis, false, &c.name, "проверка отладчика/VM".into());
         }
         if has_call(c, "java/lang/Runtime", "addShutdownHook") {
-            s.push("R18", w.shutdown_hook, false, &c.name, "addShutdownHook".into());
+            s.push("R18", "r18_hook", w.shutdown_hook, false, &c.name, "addShutdownHook".into());
         }
     }
 
@@ -774,7 +786,7 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
     {
         let n = classes_calling(ev, |cl, n| cl == "java/lang/reflect/AccessibleObject" && n == "setAccessible").len();
         if n >= 5 {
-            s.push("R19", w.mass_set_accessible, false, "jar", format!("setAccessible(true) в {n} классах"));
+            s.push("R19", "r19_setaccessible", w.mass_set_accessible, false, "jar", format!("setAccessible(true) в {n} классах"));
         }
     }
 
@@ -791,7 +803,7 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
                 .chain(c.strings.iter())
                 .find(|r| SESSION_CLASSES.iter().any(|t| r.to_ascii_lowercase().contains(t)));
             if let Some(t) = target {
-                s.push("R20", w.session_mixin, false, &c.name, format!("mixin на класс сессии/сети: {}", trunc(t, 70)));
+                s.push("R20", "r20_session_mixin", w.session_mixin, false, &c.name, format!("mixin на класс сессии/сети: {}", trunc(t, 70)));
             }
         }
     }
@@ -800,7 +812,7 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
     if let Some(nb) = &ctx.neighbors {
         if !nb.overrides.is_empty() {
             let list: Vec<String> = nb.overrides.iter().take(3).cloned().collect();
-            s.push("R21", w.override_mc_loader, false, "jar", format!("перекрытие классов игры/загрузчика: {}", list.join(", ")));
+            s.push("R21", "r21_override", w.override_mc_loader, false, "jar", format!("перекрытие классов игры/загрузчика: {}", list.join(", ")));
         }
         if !nb.duplicated.is_empty() {
             let list: Vec<String> = nb
@@ -809,13 +821,13 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
                 .take(3)
                 .map(|(c, other)| format!("{c} (также в {other})"))
                 .collect();
-            s.push("R21", w.duplicate_classes, false, "jar", format!("классы, дублирующиеся с другими модами: {}", list.join("; ")));
+            s.push("R21", "r21_duplicate", w.duplicate_classes, false, "jar", format!("классы, дублирующиеся с другими модами: {}", list.join("; ")));
         }
     }
 
     // --- R22: метаданные ---
     if !ev.classes.is_empty() && ev.mod_json.is_none() && ev.mods_toml.is_none() {
-        s.push("R22", w.no_metadata, false, "jar", "нет метаданных мода (fabric.mod.json/mods.toml)".into());
+        s.push("R22", "r22_no_meta", w.no_metadata, false, "jar", "нет метаданных мода (fabric.mod.json/mods.toml)".into());
     } else {
         let mut bare = false;
         if let Some(j) = &ev.mod_json {
@@ -826,7 +838,7 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
             }
         }
         if bare {
-            s.push("R22", w.bare_metadata, false, "jar", "метаданные без описания и контактных ссылок".into());
+            s.push("R22", "r22_bare", w.bare_metadata, false, "jar", "метаданные без описания и контактных ссылок".into());
         }
         // modid из fabric и forge метаданных не совпадают.
         if let (Some(j), Some(t)) = (&ev.mod_json, &ev.mods_toml) {
@@ -839,7 +851,7 @@ pub(crate) fn analyze(ev: &JarEvidence, ctx: &ScanContext, cfg: &ScannerConfig) 
                 .and_then(|v| v.as_str());
             if let (Some(a), Some(b)) = (fid, tid) {
                 if !a.eq_ignore_ascii_case(b) {
-                    s.push("R22", w.bare_metadata, false, "jar", format!("разные modid в метаданных: {a} и {b}"));
+                    s.push("R22", "r22_bare", w.bare_metadata, false, "jar", format!("разные modid в метаданных: {a} и {b}"));
                 }
             }
         }
@@ -874,7 +886,7 @@ mod tests {
 
     fn scan(entries: &[(String, Vec<u8>)]) -> Vec<Finding> {
         let bytes = jar(entries);
-        let ev = evidence_from_bytes("test.jar", &bytes, &super::super::config::Limits::default());
+        let ev = evidence_from_bytes(&bytes, &super::super::config::Limits::default());
         analyze(&ev, &ScanContext::default(), &ScannerConfig::with_default_whitelist())
     }
 
@@ -1079,7 +1091,7 @@ mod tests {
     fn r11_known_malware_hash() {
         let cls = ClassBuilder::new("com/example/mm/M").build();
         let bytes = jar(&[meta("mm"), ("com/example/mm/M.class".into(), cls)]);
-        let ev = evidence_from_bytes("mm.jar", &bytes, &super::super::config::Limits::default());
+        let ev = evidence_from_bytes(&bytes, &super::super::config::Limits::default());
         let ctx = ScanContext {
             known_malware: true,
             ..ScanContext::default()
@@ -1188,7 +1200,7 @@ mod tests {
     fn r21_overrides_and_duplicates() {
         let cls = ClassBuilder::new("com/example/ov/Ov").build();
         let bytes = jar(&[meta("ov"), ("com/example/ov/Ov.class".into(), cls)]);
-        let ev = evidence_from_bytes("ov.jar", &bytes, &super::super::config::Limits::default());
+        let ev = evidence_from_bytes(&bytes, &super::super::config::Limits::default());
         let ctx = ScanContext {
             neighbors: Some(Neighbors {
                 duplicated: vec![("com/example/shared/S".into(), "other.jar".into())],

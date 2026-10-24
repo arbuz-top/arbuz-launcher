@@ -242,6 +242,7 @@ pub async fn create_instance(
         playtime_sec: 0,
         playtime_days: std::collections::BTreeMap::new(),
         last_played: None,
+        scanner_mode: None,
         created,
         pack: None,
         game_dir: None,
@@ -731,9 +732,11 @@ pub async fn launch_instance(
     id: String,
     world: Option<String>,
     server: Option<String>,
+    // Пользователь подтвердил «запустить всё равно» — пропустить гейт сканера.
+    scan_override: Option<bool>,
 ) -> Res<()> {
     paths::validate_instance_id(&id)?;
-    crate::mojang::launch::launch(app, state.inner(), id, world, server).await
+    crate::mojang::launch::launch(app, state.inner(), id, world, server, scan_override.unwrap_or(false)).await
 }
 
 #[tauri::command]
@@ -1091,6 +1094,40 @@ pub async fn open_pack_configs(app: AppHandle, id: String) -> Res<()> {
 #[tauri::command]
 pub async fn account_skin(state: State<'_, AppState>, id: String) -> Res<Option<crate::skins::Skin>> {
     crate::skins::account_skin(&state, &id).await
+}
+
+// ---------------------------------------------------------------------------
+// Сканер модов
+// ---------------------------------------------------------------------------
+
+/// Сканирует контент профиля и возвращает отчёты по каждому файлу.
+#[tauri::command]
+pub async fn scan_mods(state: State<'_, AppState>, id: String) -> Res<Vec<crate::scanner::ModReport>> {
+    crate::scanner::scan_instance(&state, &id).await
+}
+
+/// Ручное исключение файла из блокировки сканера (или его снятие).
+#[tauri::command]
+pub async fn scanner_allow_mod(id: String, file: String, allow: bool) -> Res<()> {
+    crate::scanner::allow_mod(&id, &file, allow).await
+}
+
+/// Файлы в карантине профиля (параноидальный режим).
+#[tauri::command]
+pub async fn scanner_quarantine(id: String) -> Res<Vec<String>> {
+    crate::scanner::quarantine_list(&id).await
+}
+
+/// Возвращает файл из карантина в mods/.
+#[tauri::command]
+pub async fn scanner_quarantine_restore(id: String, name: String) -> Res<()> {
+    crate::scanner::quarantine_restore(&id, &name).await
+}
+
+/// Окончательно удаляет файл из карантина.
+#[tauri::command]
+pub async fn scanner_quarantine_delete(id: String, name: String) -> Res<()> {
+    crate::scanner::quarantine_delete(&id, &name).await
 }
 
 // ---------------------------------------------------------------------------

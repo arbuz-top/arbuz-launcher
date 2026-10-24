@@ -2,8 +2,6 @@
 //! (`<data>/scanner.json`). Режимы проверки (обычный/усиленный/параноидальный)
 //! меняют только пороги и бонусы, набор правил один и тот же.
 
-// Пороги применит оркестратор сканера на следующем этапе.
-#![allow(dead_code)]
 
 use serde::{Deserialize, Serialize};
 
@@ -123,27 +121,61 @@ impl Default for Weights {
     }
 }
 
-/// Пороги уровней и режимные бонусы/штрафы.
-#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
+/// Пороги одного режима: уровни и бонусы/штрафы за хеш на Modrinth.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default)]
 #[serde(rename_all = "camelCase", default)]
-pub(crate) struct Thresholds {
+pub(crate) struct ModeThresholds {
     /// score >= danger — уровень danger.
     pub danger: i32,
     /// score >= suspicious — уровень suspicious.
     pub suspicious: i32,
-    /// Бонус за найденный на Modrinth хеш (вычитается из score).
+    /// Бонус за найденный на Modrinth/CurseForge хеш (вычитается из score,
+    /// но не ниже суммы hard-находок).
     pub modrinth_known_bonus: i32,
-    /// Штраф за неизвестный Modrinth хеш (усиленный режим).
+    /// Штраф за хеш, которого нет в каталогах.
     pub modrinth_unknown_penalty: i32,
+}
+
+impl ModeThresholds {
+    fn new(danger: i32, suspicious: i32, known: i32, unknown: i32) -> Self {
+        Self {
+            danger,
+            suspicious,
+            modrinth_known_bonus: known,
+            modrinth_unknown_penalty: unknown,
+        }
+    }
+
+    fn sanitize(&mut self) {
+        self.danger = self.danger.clamp(1, 100);
+        self.suspicious = self.suspicious.clamp(1, 100);
+        if self.suspicious > self.danger {
+            self.suspicious = self.danger;
+        }
+        self.modrinth_known_bonus = self.modrinth_known_bonus.clamp(0, 100);
+        self.modrinth_unknown_penalty = self.modrinth_unknown_penalty.clamp(0, 100);
+    }
+}
+
+/// Пороги всех трёх режимов. Режимы отличаются только этими числами
+/// (и списками «блок при любой находке» — они фиксированы ТЗ).
+#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
+#[serde(rename_all = "camelCase", default)]
+pub(crate) struct Thresholds {
+    pub normal: ModeThresholds,
+    pub strict: ModeThresholds,
+    pub paranoid: ModeThresholds,
 }
 
 impl Default for Thresholds {
     fn default() -> Self {
         Self {
-            danger: 70,
-            suspicious: 35,
-            modrinth_known_bonus: 50,
-            modrinth_unknown_penalty: 0,
+            // Обычный: блок только при danger (>=70), Modrinth даёт −50.
+            normal: ModeThresholds::new(70, 35, 50, 0),
+            // Усиленный: danger при 45, Modrinth −25, неизвестный хеш +20.
+            strict: ModeThresholds::new(45, 35, 25, 20),
+            // Параноидальный: подозрительно всё, кроме чистого известного мода.
+            paranoid: ModeThresholds::new(1, 1, 0, 100),
         }
     }
 }
@@ -188,11 +220,12 @@ pub(crate) enum ScanMode {
 }
 
 impl ScanMode {
-    pub(crate) fn label(&self) -> &'static str {
+    /// Пороги этого режима из конфига.
+    pub(crate) fn thresholds(self, cfg: &ScannerConfig) -> ModeThresholds {
         match self {
-            ScanMode::Normal => "обычный",
-            ScanMode::Strict => "усиленный",
-            ScanMode::Paranoid => "параноидальный",
+            ScanMode::Normal => cfg.thresholds.normal,
+            ScanMode::Strict => cfg.thresholds.strict,
+            ScanMode::Paranoid => cfg.thresholds.paranoid,
         }
     }
 }
@@ -286,13 +319,9 @@ impl ScannerConfig {
         ] {
             *v = (*v).clamp(0, 100);
         }
-        self.thresholds.danger = self.thresholds.danger.clamp(1, 100);
-        self.thresholds.suspicious = self.thresholds.suspicious.clamp(1, 100);
-        if self.thresholds.suspicious > self.thresholds.danger {
-            self.thresholds.suspicious = self.thresholds.danger;
-        }
-        self.thresholds.modrinth_known_bonus = self.thresholds.modrinth_known_bonus.clamp(0, 100);
-        self.thresholds.modrinth_unknown_penalty = self.thresholds.modrinth_unknown_penalty.clamp(0, 100);
+        self.thresholds.normal.sanitize();
+        self.thresholds.strict.sanitize();
+        self.thresholds.paranoid.sanitize();
         self.limits.max_jar_bytes = self.limits.max_jar_bytes.clamp(1024 * 1024, 8 * 1024 * 1024 * 1024);
         self.limits.max_entries = self.limits.max_entries.clamp(100, 500_000);
         self.limits.max_uncompressed_bytes =
@@ -312,7 +341,10 @@ mod tests {
     fn default_config_is_sane() {
         let mut cfg = ScannerConfig::with_default_whitelist();
         cfg.sanitize();
-        assert!(cfg.thresholds.suspicious < cfg.thresholds.danger);
+        let t = cfg.thresholds.normal;
+        assert!(t.suspicious < t.danger);
+        assert_eq!(cfg.thresholds.strict.danger, 45);
+        assert_eq!(cfg.thresholds.paranoid.modrinth_unknown_penalty, 100);
         assert!(cfg.weights.known_malware_hash >= 100);
         assert!(cfg.whitelist_domains.contains(&"api.modrinth.com".to_string()));
     }
@@ -326,8 +358,7 @@ mod tests {
                 ..Weights::default()
             },
             thresholds: Thresholds {
-                danger: 0,
-                suspicious: 200,
+                normal: ModeThresholds::new(0, 200, 10, 10),
                 ..Thresholds::default()
             },
             whitelist_domains: vec!["".into(), "ok.example".into()],
@@ -336,8 +367,8 @@ mod tests {
         cfg.sanitize();
         assert_eq!(cfg.weights.exfil_channel, 100);
         assert_eq!(cfg.weights.jar_in_jar, 0);
-        assert_eq!(cfg.thresholds.danger, 1);
-        assert_eq!(cfg.thresholds.suspicious, 1);
+        assert_eq!(cfg.thresholds.normal.danger, 1);
+        assert_eq!(cfg.thresholds.normal.suspicious, 1);
         assert_eq!(cfg.whitelist_domains, vec!["ok.example".to_string()]);
     }
 
@@ -346,7 +377,9 @@ mod tests {
         let cfg = ScannerConfig::with_default_whitelist();
         let raw = serde_json::to_string(&cfg).expect("serialize");
         assert!(raw.contains("\"exfilChannel\""));
+        assert!(raw.contains("\"modrinthKnownBonus\""));
         let back: ScannerConfig = serde_json::from_str(&raw).expect("deserialize");
         assert_eq!(back.weights.exfil_channel, cfg.weights.exfil_channel);
+        assert_eq!(back.thresholds.strict.danger, cfg.thresholds.strict.danger);
     }
 }

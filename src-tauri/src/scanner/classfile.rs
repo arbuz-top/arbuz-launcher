@@ -5,9 +5,6 @@
 //! классов (mixin-цели, обфускация). Полный байткод не разбирается — для
 //! статических правил сканера достаточно пула констант.
 
-// Парсер подключат правила сканера на следующем этапе; до тех пор в не-тестовой
-// сборке он не вызывается.
-#![allow(dead_code)]
 
 use std::collections::HashSet;
 
@@ -42,7 +39,6 @@ pub(crate) struct FieldRef {
 pub(crate) struct ClassData {
     /// Бинарное имя класса: `com/example/mymod/Foo`.
     pub name: String,
-    pub super_class: Option<String>,
     /// Реализуемые интерфейсы (бинарные имена).
     pub interfaces: Vec<String>,
     /// Уникальные строковые константы в порядке появления.
@@ -60,8 +56,6 @@ pub(crate) struct ClassData {
     pub native_methods: usize,
     /// Int-константы пула (например, аргументы Thread.sleep).
     pub int_constants: Vec<i32>,
-    /// major version class-файла.
-    pub major_version: u16,
 }
 
 /// Разбирает один .class. `None`, если файл битый или это не class-файл.
@@ -69,9 +63,7 @@ pub(crate) fn parse(bytes: &[u8]) -> Option<ClassData> {
     let cf = cafebabe::parse_class(bytes).ok()?;
     let mut data = ClassData {
         name: cf.this_class.to_string(),
-        super_class: cf.super_class.as_ref().map(|s| s.to_string()),
         interfaces: cf.interfaces.iter().map(|s| s.to_string()).collect(),
-        major_version: cf.major_version,
         ..ClassData::default()
     };
 
@@ -141,7 +133,6 @@ mod tests {
             None => panic!("синтетический class должен разбираться"),
         };
         assert_eq!(d.name, "com/example/mymod/Foo");
-        assert_eq!(d.super_class.as_deref(), Some("java/lang/Object"));
         assert!(d
             .strings
             .iter()
@@ -171,7 +162,6 @@ mod tests {
             .build();
         let d = parse(&bytes).expect("class");
         assert_eq!(d.declared_methods, vec!["a", "onInitialize"]);
-        assert_eq!(d.major_version, crate::scanner::synthetic::MAJOR);
     }
 
     #[test]

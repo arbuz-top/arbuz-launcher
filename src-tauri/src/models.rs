@@ -72,6 +72,10 @@ pub struct Instance {    pub id: String,
     /// Своя папка игры (`.minecraft`); `None` — `instances/<id>/minecraft`.
     #[serde(default)]
     pub game_dir: Option<String>,
+    /// Режим сканера модов для этого профиля: "normal" | "strict" | "paranoid".
+    /// `None`/пусто — использовать глобальный режим.
+    #[serde(default)]
+    pub scanner_mode: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
@@ -349,10 +353,14 @@ pub struct Config {
     /// Закрытие окна прячет лаунчер в трей, а не выходит.
     pub close_to_tray: bool,
     pub hide_empty: bool,
-    /// Экспериментально: включена ли защита при запуске игры.
+    /// Экспериментально: защита при запуске игры.
     pub mod_isolation_enabled: bool,
     /// Уровень защиты: "min" | "std" | "strict".
     pub mod_isolation_level: String,
+    /// Сканер модов перед запуском игры.
+    pub scanner_enabled: bool,
+    /// Режим сканера: "normal" | "strict" | "paranoid".
+    pub scanner_mode: String,
     pub curseforge_api_key: String,
     /// Экспериментально: ИИ-ассистент сборок по промпту.
     pub ai_builder: bool,
@@ -390,6 +398,8 @@ impl Default for Config {
             hide_empty: false,
             mod_isolation_enabled: false,
             mod_isolation_level: "min".into(),
+            scanner_enabled: false,
+            scanner_mode: "normal".into(),
             curseforge_api_key: String::new(),
             ai_builder: true,
             ai_pack_limit: 0,
@@ -429,6 +439,9 @@ impl Config {
                 .all(|c| c.is_ascii_alphanumeric() || "-_./".contains(c))
         {
             self.ai_pack_model.clear();
+        }
+        if !matches!(self.scanner_mode.as_str(), "normal" | "strict" | "paranoid") {
+            self.scanner_mode = "normal".into();
         }
         self.moves.retain(|k, v| {
             !k.is_empty() && k.len() <= 300 && v[0].is_finite() && v[1].is_finite()
