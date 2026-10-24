@@ -10,7 +10,6 @@ use crate::error::Res;
 use crate::{paths, store};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::path::Path;
 
 /// Настройки синхронизации (в config.json).
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
@@ -23,20 +22,6 @@ pub struct SyncSettings {
     /// Переносить servers.dat (список серверов).
     pub servers_dat: bool,
 }
-
-/// Пресеты наборов ключей: имя -> префиксы/точные ключи.
-pub(crate) const PRESETS: &[(&str, &[&str])] = &[
-    ("control", &["key_"]),
-    ("sound", &["soundCategory_"]),
-    (
-        "graphics",
-        &[
-            "fov", "gamma", "renderDistance", "graphicsMode", "maxFps", "particles",
-            "mipmapLevels", "biomeBlendRadius", "entityShadows", "smoothLighting",
-            "entityDistanceScaling", "guiScale",
-        ],
-    ),
-];
 
 /// Разбирает options.txt в (ключ -> значение). Строки без ':' пропускаются.
 pub(crate) fn parse_options(text: &str) -> BTreeMap<String, String> {
@@ -84,17 +69,6 @@ pub(crate) fn merge_options(
         }
     }
     applied
-}
-
-/// Ключи, попадающие в пресет.
-pub(crate) fn preset_keys(preset: &str, keys: &[String]) -> Vec<String> {
-    let Some((_, pats)) = PRESETS.iter().find(|(name, _)| *name == preset) else {
-        return Vec::new();
-    };
-    keys.iter()
-        .filter(|k| pats.iter().any(|p| k == p || k.starts_with(p)))
-        .cloned()
-        .collect()
 }
 
 fn options_path(id: &str) -> std::path::PathBuf {
@@ -157,31 +131,6 @@ pub async fn apply_before_launch(id: &str, st: &SyncSettings) -> Res<()> {
     Ok(())
 }
 
-/// Читает servers.dat и возвращает список серверов (имя + адрес).
-/// Нужно для «быстрого входа» и каталога; здесь же один парсер.
-pub(crate) fn read_servers_dat(path: &Path) -> Vec<(String, String)> {
-    let Ok(raw) = std::fs::read(path) else {
-        return Vec::new();
-    };
-    #[derive(Deserialize)]
-    struct Root {
-        #[serde(rename = "servers", default)]
-        servers: Vec<Server>,
-    }
-    #[derive(Deserialize)]
-    struct Server {
-        #[serde(rename = "name", default)]
-        name: String,
-        #[serde(rename = "ip", default)]
-        ip: String,
-    }
-    let root: Root = fastnbt::from_bytes(&raw).unwrap_or(Root { servers: Vec::new() });
-    root.servers
-        .into_iter()
-        .map(|s| (s.name, s.ip))
-        .collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -228,68 +177,4 @@ mod tests {
         assert_eq!(target.get("renderDistance").map(String::as_str), Some("12"));
     }
 
-    #[test]
-    fn presets_pick_matching_keys() {
-        let keys: Vec<String> = vec![
-            "key_key.forward".into(),
-            "key_key.jump".into(),
-            "soundCategory_music".into(),
-            "fov".into(),
-            "renderDistance".into(),
-            "lang".into(),
-        ]
-        .into_iter()
-        .map(|s: &str| s.to_string())
-        .collect::<std::collections::BTreeSet<_>>()
-        .into_iter()
-        .collect();
-        let control = preset_keys("control", &keys);
-        assert_eq!(control.len(), 2);
-        let sound = preset_keys("sound", &keys);
-        assert_eq!(sound, vec!["soundCategory_music".to_string()]);
-        let gfx = preset_keys("graphics", &keys);
-        assert!(gfx.contains(&"fov".to_string()));
-        assert!(gfx.contains(&"renderDistance".to_string()));
-        assert!(!gfx.contains(&"lang".to_string()));
-        assert!(preset_keys("nope", &keys).is_empty());
-    }
-
-    /// servers.dat (несжатый NBT): проверяем парсер на файле, собранном
-    /// вручную байт за байтом.
-    #[test]
-    fn servers_dat_parser_reads_list() {
-        fn tag_string(out: &mut Vec<u8>, name: &str, value: &str) {
-            out.push(8); // TAG_String
-            out.extend_from_slice(&(name.len() as u16).to_be_bytes());
-            out.extend_from_slice(name.as_bytes());
-            let v = value.as_bytes();
-            out.extend_from_slice(&(v.len() as u16).to_be_bytes());
-            out.extend_from_slice(v);
-        }
-        let mut nbt: Vec<u8> = Vec::new();
-        nbt.extend_from_slice(&[10, 0, 0]); // TAG_Compound, имя ""
-        nbt.push(9); // TAG_List
-        nbt.extend_from_slice(&(7u16).to_be_bytes());
-        nbt.extend_from_slice(b"servers");
-        nbt.push(10); // тип элемента — TAG_Compound
-        nbt.extend_from_slice(&2u32.to_be_bytes()); // длина списка
-        for (name, ip) in [("Сервер 1", "play.example.net:25565"), ("Test", "mc2.example.org")] {
-            // Элементы списка — только полезная нагрузка, без тега и имени.
-            tag_string(&mut nbt, "name", name);
-            tag_string(&mut nbt, "ip", ip);
-            nbt.push(0); // TAG_End элемента
-        }
-        nbt.push(0); // TAG_End корня
-
-        let dir = std::env::temp_dir().join(format!("arbuz-sync-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        let path = dir.join("servers.dat");
-        std::fs::write(&path, &nbt).unwrap();
-        let servers = read_servers_dat(&path);
-        assert_eq!(servers.len(), 2, "{servers:?}");
-        assert_eq!(servers[0].0, "Сервер 1");
-        assert_eq!(servers[1].1, "mc2.example.org");
-        let _ = std::fs::remove_dir_all(&dir);
-    }
 }

@@ -1158,6 +1158,19 @@ pub async fn sync_master_options(state: State<'_, AppState>) -> Res<std::collect
     crate::sync::master_keys(&master).await
 }
 
+// ---------------------------------------------------------------------------
+// Умная консоль (Б2)
+// ---------------------------------------------------------------------------
+
+/// Какому модулю принадлежит класс из стектрейса.
+#[tauri::command]
+pub async fn find_class_owner(
+    id: String,
+    class: String,
+) -> Res<Option<crate::scanner::classindex::ClassOwner>> {
+    crate::scanner::classindex::find_owner(&id, &class).await
+}
+
 /// Окончательно удаляет файл из карантина.
 #[tauri::command]
 pub async fn scanner_quarantine_delete(id: String, name: String) -> Res<()> {

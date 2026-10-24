@@ -432,6 +432,12 @@ export interface AiNote {
   elapsedMs: number;
 }
 
+/** Владелец класса из стектрейса (мод из mods/). */
+export interface ClassOwner {
+  name: string;
+  file: string;
+}
+
 /** Одна находка сканера модов. */
 export interface ScanFinding {
   rule: string;
@@ -646,4 +652,6 @@ export const api = {
   aiScanNote: (id: string, file: string, lang: string) =>
     invoke<AiNote>('ai_scan_note', { id, file, lang }),
   syncMasterOptions: () => invoke<Record<string, string>>('sync_master_options'),
+  findClassOwner: (id: string, cls: string) =>
+    invoke<ClassOwner | null>('find_class_owner', { id, class: cls }),
 };

@@ -11,6 +11,7 @@
 pub(crate) mod ai_note;
 pub(crate) mod cache;
 pub(crate) mod classfile;
+pub(crate) mod classindex;
 pub(crate) mod config;
 pub(crate) mod decode;
 pub(crate) mod evidence;
