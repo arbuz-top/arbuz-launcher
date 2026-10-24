@@ -5,6 +5,7 @@
 // какому модулю принадлежит класс (индекс классов из jar-ов mods/).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../lib/api';
+import { MonitorPanel } from './GameMonitor';
 import { useT } from '../lib/i18n';
 import { useStore } from '../store';
 
@@ -169,6 +170,7 @@ export function ConsoleModal() {
               {t('Закрыть')}
             </button>
           </div>
+          <MonitorPanel id={id} />
           {owner && (
             <div className="row" style={{ padding: '6px 14px', background: 'var(--s1, #212225)' }}>
               <span className="hint" style={{ fontFamily: 'ui-monospace,monospace' }}>{owner.cls}</span>

@@ -454,6 +454,14 @@ export interface PingInfo {
   motd: string;
 }
 
+/** Снимок ресурсов процесса игры для монитора. */
+export interface MonitorSample {
+  pid: number;
+  found: boolean;
+  ramMb: number;
+  cpuPct: number;
+}
+
 /** Закреплённый на профиле сервер. */
 export interface PinnedServer {
   name: string;
@@ -690,4 +698,5 @@ export const api = {
   pinnedServers: (id: string) => invoke<PinnedServer[]>('pinned_servers', { id }),
   pinServer: (id: string, name: string, ip: string, pin: boolean) =>
     invoke<void>('pin_server', { id, name, ip, pin }),
+  gameMonitor: (id: string) => invoke<MonitorSample>('game_monitor', { id }),
 };

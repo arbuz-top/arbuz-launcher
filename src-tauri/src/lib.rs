@@ -231,6 +231,7 @@ pub fn run() {
             commands::servers_dat_add,
             commands::pinned_servers,
             commands::pin_server,
+            commands::game_monitor,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

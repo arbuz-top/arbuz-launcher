@@ -174,6 +174,7 @@ pub async fn launch(
 
     let result = run(&app, state, &id, &inst, &acc, world, server, scan_override, &mut kill_rx).await;
     state.running.lock().await.remove(&id);
+    state.game_pids.lock().await.remove(&id);
 
     match result {
         Ok(Outcome::Done(code)) => {
@@ -657,6 +658,7 @@ async fn run(
             crate::sandbox::apply(h, guard, sandbox_ready);
         }
     }
+    state.game_pids.lock().await.insert(id.to_string(), child.id().unwrap_or(0));
     let _ = app.emit(
         "game-start",
         GameStart {

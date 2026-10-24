@@ -1206,6 +1206,42 @@ pub async fn pin_server(id: String, name: String, ip: String, pin: bool) -> Res<
     crate::servers::pin(&id, &name, &ip, pin).await
 }
 
+// ---------------------------------------------------------------------------
+// Живой мониторинг игры (Б4)
+// ---------------------------------------------------------------------------
+
+/// Снимок ресурсов процесса игры (опрашивается интерфейсом раз в пару секунд).
+#[derive(serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct MonitorSample {
+    pub pid: u32,
+    pub found: bool,
+    /// Резидентная память процесса, МБ.
+    pub ram_mb: u64,
+    /// CPU процесса, % (один поток может дать до ~100 на ядро).
+    pub cpu_pct: f32,
+}
+
+#[tauri::command]
+pub fn game_monitor(state: State<'_, AppState>, id: String) -> MonitorSample {
+    let Some(pid) = state.game_pids.blocking_lock().get(&id).copied() else {
+        return MonitorSample { pid: 0, found: false, ram_mb: 0, cpu_pct: 0.0 };
+    };
+    let pid = sysinfo::Pid::from_u32(pid);
+    // Один System на процесс: cpu_usage считается от прошлого опроса.
+    let mut sys = state.monitor.lock().unwrap_or_else(|e| e.into_inner());
+    sys.refresh_process(pid);
+    match sys.process(pid) {
+        Some(p) => MonitorSample {
+            pid: p.pid().as_u32(),
+            found: true,
+            ram_mb: p.memory() / 1024 / 1024,
+            cpu_pct: p.cpu_usage(),
+        },
+        None => MonitorSample { pid: pid.as_u32(), found: false, ram_mb: 0, cpu_pct: 0.0 },
+    }
+}
+
 /// Окончательно удаляет файл из карантина.
 #[tauri::command]
 pub async fn scanner_quarantine_delete(id: String, name: String) -> Res<()> {
