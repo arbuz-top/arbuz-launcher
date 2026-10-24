@@ -10,12 +10,13 @@ import { ColorPicker, PRESET_COLORS } from './ColorPicker';
 import { Toggle } from './Controls';
 import { ThemePicker } from './ThemePicker';
 
-type ToggleKey = 'closeOnLaunch' | 'showConsole' | 'hideEmpty' | 'checkLauncherUpdates' | 'closeToTray';
+type ToggleKey = 'closeOnLaunch' | 'showConsole' | 'hideEmpty' | 'checkLauncherUpdates' | 'closeToTray' | 'showPlaytimeStats';
 
 const TOGGLES: [ToggleKey, string][] = [
   ['closeOnLaunch', 'Скрывать лаунчер при запуске игры'],
   ['showConsole', 'Показывать консоль игры'],
   ['hideEmpty', 'Скрывать пустые профили'],
+  ['showPlaytimeStats', 'Показывать статистику времени игры'],
   ['checkLauncherUpdates', 'Проверять обновления лаунчера'],
   ['closeToTray', 'Прятать в трей при закрытии'],
 ];

@@ -42,6 +42,7 @@ export const DEFAULT_CONFIG: Config = {
   scannerMode: 'normal',
   aiScanner: false,
   serversUrl: '',
+  showPlaytimeStats: true,
   sync: null,
   curseforgeApiKey: '',
   aiBuilder: true,

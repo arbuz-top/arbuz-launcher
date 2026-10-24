@@ -139,6 +139,8 @@ export interface Config {
   aiScanner: boolean;
   /** URL статичного JSON со списком серверов. */
   serversUrl: string;
+  /** Показывать статистику времени игры. */
+  showPlaytimeStats: boolean;
   curseforgeApiKey: string;
   /** Экспериментально: ИИ-ассистент сборок по промпту. */
   aiBuilder: boolean;

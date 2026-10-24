@@ -259,7 +259,48 @@ export function InstanceSettings({ inst }: { inst: Instance }) {
           ))}
         </div>
 
-        <label className="l">{t('Изолированная папка')}</label>
+        {s.config.showPlaytimeStats && (
+          <>
+            <label className="l" style={{ marginTop: 18 }}>
+              {t('Время игры')}
+            </label>
+            <div className="panel" style={{ padding: 14 }}>
+              <b style={{ fontSize: 18, fontWeight: 600 }}>
+                {t('{h} ч всего', {
+                  h: (inst.playtimeSec / 3600).toFixed(1),
+                })}
+              </b>
+              <div className="row" style={{ alignItems: 'flex-end', gap: 3, height: 44, marginTop: 10 }}>
+                {(() => {
+                  const days = Object.entries(inst.playtimeDays)
+                    .map(([d, sec]) => ({ d, sec }))
+                    .sort((a, b) => (a.d < b.d ? -1 : 1))
+                    .slice(-28);
+                  const max = Math.max(1, ...days.map((x) => x.sec));
+                  return days.map((x) => (
+                    <div
+                      key={x.d}
+                      title={`${x.d}: ${(x.sec / 3600).toFixed(1)} ч`}
+                      style={{
+                        flex: 1,
+                        minWidth: 4,
+                        height: `${Math.max(6, (x.sec / max) * 100)}%`,
+                        background: 'var(--pri)',
+                        borderRadius: 2,
+                        opacity: 0.85,
+                      }}
+                    />
+                  ));
+                })()}
+              </div>
+              <div className="hint" style={{ marginTop: 6 }}>
+                {t('Последние 28 дней игры')}
+              </div>
+            </div>
+          </>
+        )}
+
+        <label className="l" style={{ marginTop: 18 }}>{t('Изолированная папка')}</label>
         <div className="panel" style={{ padding: 14 }}>
           <div className="hint" style={{ fontFamily: 'ui-monospace,monospace' }}>
             instances/{inst.id}/minecraft/

@@ -366,6 +366,8 @@ pub struct Config {
     pub ai_scanner: bool,
     /// URL статичного JSON со списком серверов (формат — в README).
     pub servers_url: String,
+    /// Показывать статистику времени игры по профилям.
+    pub show_playtime_stats: bool,
     pub curseforge_api_key: String,
     /// Экспериментально: ИИ-ассистент сборок по промпту.
     pub ai_builder: bool,
@@ -410,6 +412,7 @@ impl Default for Config {
             scanner_mode: "normal".into(),
             ai_scanner: false,
             servers_url: String::new(),
+            show_playtime_stats: true,
             curseforge_api_key: String::new(),
             ai_builder: true,
             ai_pack_limit: 0,
