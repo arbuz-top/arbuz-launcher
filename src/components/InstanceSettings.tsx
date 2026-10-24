@@ -11,6 +11,7 @@ import {
   WINDOW_PRESETS,
 } from '../lib/labels';
 import { BUILTIN_ICONS } from '../lib/builtin';
+import { recommendedRamMb } from '../lib/perf';
 import { applyInstance, askConfirm, cancelSave, curAccount, iconUrl, saveInstance, useArtTheme, useStore, type Sec } from '../store';
 import { useT } from '../lib/i18n';
 import { VERSION_GROUPS } from '../lib/versions';
@@ -340,6 +341,18 @@ export function InstanceSettings({ inst }: { inst: Instance }) {
               {t('Для сборок с модами меньше 2 ГБ почти всегда мало — начнутся лаги и вылеты.')}
             </div>
           )}
+          <div className="row" style={{ justifyContent: 'flex-end', marginTop: 8 }}>
+            <button
+              className="btn sm"
+              onClick={() => {
+                const mods = (s.sel === inst.id ? s.content : []).filter((c) => c.kind === 'mod' && c.enabled).length;
+                const target = recommendedRamMb(mods, s.systemRamMb);
+                upd({ ramMaxMb: target, ramMinMb: Math.min(inst.ramMinMb, Math.max(512, target / 4)) });
+              }}
+            >
+              {t('Подобрать по модам')}
+            </button>
+          </div>
         </div>
 
         <div className="two">
