@@ -19,6 +19,7 @@ mod packs;
 mod paths;
 mod prism;
 mod sandbox;
+mod scanner;
 mod skins;
 mod state;
 mod store;
