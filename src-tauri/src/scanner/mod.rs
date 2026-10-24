@@ -8,6 +8,7 @@
 //! моментальные красные флаги, в параноидальном — всё, кроме чистых известных
 //! модов (заблокированные уходят в карантин, не удаляются).
 
+pub(crate) mod ai_note;
 pub(crate) mod cache;
 pub(crate) mod classfile;
 pub(crate) mod config;
@@ -612,6 +613,43 @@ impl Finding {
             what: self.what.clone(),
         }
     }
+}
+
+/// ИИ-заметка по одному моду: только для suspicious/danger и только при
+/// включённом переключателе. Статический вердикт не меняется.
+pub async fn ai_note_for(
+    state: &crate::state::AppState,
+    id: &str,
+    file: &str,
+    lang: &str,
+) -> Res<ai_note::AiNote> {
+    let ai_on = state.config.lock().await.ai_scanner;
+    if !ai_on {
+        return err("ИИ-этап сканера выключен в настройках");
+    }
+    let reports = scan_instance(state, id).await?;
+    let r = reports
+        .iter()
+        .find(|r| r.file == file)
+        .ok_or_else(|| AppError::Msg("Файл не найден в отчёте сканера".into()))?;
+    if r.level == Level::Ok {
+        return err("ИИ-заметка доступна только для подозрительных файлов");
+    }
+    let findings: Vec<(String, String, i32, String)> = r
+        .findings
+        .iter()
+        .map(|f| (f.rule.clone(), f.what.clone(), f.weight, f.place.clone()))
+        .collect();
+    ai_note::note(
+        &r.file,
+        &r.sha256,
+        r.known_hash,
+        r.score,
+        r.level.label(),
+        &findings,
+        lang,
+    )
+    .await
 }
 
 #[cfg(test)]

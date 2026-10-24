@@ -5,7 +5,7 @@
 // можно вернуть в mods/ или удалить отсюда.
 import { useCallback, useEffect, useState } from 'react';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { api, type Instance, type ModReport } from '../lib/api';
+import { api, type AiNote, type Instance, type ModReport } from '../lib/api';
 import { useT } from '../lib/i18n';
 import { askConfirm, saveInstance, useStore } from '../store';
 import { Seg, Toggle } from './Controls';
@@ -22,6 +22,12 @@ const MODE_LABEL: Record<string, string> = {
   paranoid: 'Параноидальный',
 };
 
+const AI_ASSESSMENT: Record<string, string> = {
+  benign: 'похоже на ложные срабатывания',
+  suspicious: 'признаки требуют внимания',
+  malicious: 'паттерн подозрительный',
+};
+
 export function ScannerTab({ inst }: { inst: Instance }) {
   const s = useStore();
   const t = useT();
@@ -29,6 +35,7 @@ export function ScannerTab({ inst }: { inst: Instance }) {
   const [busy, setBusy] = useState(false);
   const [quarantine, setQuarantine] = useState<string[]>([]);
   const [openFile, setOpenFile] = useState<string | null>(null);
+  const [aiNotes, setAiNotes] = useState<Record<string, AiNote | null>>({});
 
   const enabled = s.config.scannerEnabled;
   const mode = inst.scannerMode || s.config.scannerMode || 'normal';
@@ -94,6 +101,22 @@ export function ScannerTab({ inst }: { inst: Instance }) {
       await api.scannerQuarantineDelete(inst.id, name);
       await rescan();
     } catch (e) {
+      useStore.getState().toastMsg(String(e));
+    }
+  };
+
+  const askAi = async (r: ModReport) => {
+    setAiNotes((n) => ({ ...n, [r.file]: null }));
+    try {
+      const lang = useStore.getState().config.lang;
+      const note = await api.aiScanNote(inst.id, r.file, lang);
+      setAiNotes((n) => ({ ...n, [r.file]: note }));
+    } catch (e) {
+      setAiNotes((n) => {
+        const copy = { ...n };
+        delete copy[r.file];
+        return copy;
+      });
       useStore.getState().toastMsg(String(e));
     }
   };
@@ -236,6 +259,19 @@ export function ScannerTab({ inst }: { inst: Instance }) {
                     </div>
                   ))}
                   <div className="row g8" style={{ marginTop: 10, flexWrap: 'wrap' }}>
+                    {r.level !== 'ok' && s.config.aiScanner && (
+                      <button
+                        className="btn sm"
+                        disabled={aiNotes[r.file] === null}
+                        onClick={() => void askAi(r)}
+                      >
+                        {aiNotes[r.file] === null
+                          ? t('ИИ думает…')
+                          : aiNotes[r.file]
+                            ? t('Обновить ИИ-заметку')
+                            : t('ИИ-заметка')}
+                      </button>
+                    )}
                     {r.level === 'danger' && (
                       <button
                         className="btn sm"
@@ -258,6 +294,27 @@ export function ScannerTab({ inst }: { inst: Instance }) {
                       </button>
                     )}
                   </div>
+                  {aiNotes[r.file] && (
+                    (() => {
+                      const n = aiNotes[r.file];
+                      return (
+                    <div className="panel" style={{ marginTop: 10, padding: 12 }}>
+                      <div className="hint" style={{ marginBottom: 4 }}>
+                        {t('ИИ-заметка (не приговор): {a}, уверенность {c}%', {
+                          a: t(AI_ASSESSMENT[n!.assessment] ?? n!.assessment),
+                          c: Math.round(n!.confidence * 100),
+                        })}
+                      </div>
+                      <div style={{ fontSize: 13 }}>{n!.note}</div>
+                      <div className="hint" style={{ marginTop: 4 }}>
+                        {t('Модель: {m}. Оценка сканера при этом не меняется.', {
+                          m: n!.model,
+                        })}
+                      </div>
+                    </div>
+                      );
+                    })()
+                  )}
                 </div>
               )}
             </div>

@@ -221,6 +221,7 @@ pub fn run() {
             commands::scanner_quarantine,
             commands::scanner_quarantine_restore,
             commands::scanner_quarantine_delete,
+            commands::ai_scan_note,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

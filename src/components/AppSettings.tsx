@@ -460,6 +460,13 @@ export function AppSettings() {
           <div className="hint" style={{ paddingBottom: 12 }}>
             {t('Параноидальный: запускаются только моды с известным хешем и без признаков; заблокированные переносятся в карантин.')}
           </div>
+          <div className="sw">
+            <span>{t('ИИ-заметки сканера')}</span>
+            <Toggle on={c.aiScanner} onClick={() => set({ aiScanner: !c.aiScanner })} />
+          </div>
+          <div className="hint" style={{ paddingBottom: 12 }}>
+            {t('Внимание: для подозрительных модов найденные фрагменты кода (строки, имена классов) отправляются на сторонний ИИ-сервис, чтобы получить пояснение. Заметка не влияет на оценку сканера.')}
+          </div>
         </div>
         <div className="hint" style={{ marginTop: 6 }}>
           {t('По умолчанию доступна только плоская тема.')}

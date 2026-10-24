@@ -361,6 +361,9 @@ pub struct Config {
     pub scanner_enabled: bool,
     /// Режим сканера: "normal" | "strict" | "paranoid".
     pub scanner_mode: String,
+    /// ИИ-этап сканера: заметки по подозрительным модам (фрагменты
+    /// уходят на сторонний сервис — предупреждение в настройках).
+    pub ai_scanner: bool,
     pub curseforge_api_key: String,
     /// Экспериментально: ИИ-ассистент сборок по промпту.
     pub ai_builder: bool,
@@ -400,6 +403,7 @@ impl Default for Config {
             mod_isolation_level: "min".into(),
             scanner_enabled: false,
             scanner_mode: "normal".into(),
+            ai_scanner: false,
             curseforge_api_key: String::new(),
             ai_builder: true,
             ai_pack_limit: 0,

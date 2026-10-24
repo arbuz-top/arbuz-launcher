@@ -40,6 +40,7 @@ export const DEFAULT_CONFIG: Config = {
   modIsolationLevel: 'min',
   scannerEnabled: false,
   scannerMode: 'normal',
+  aiScanner: false,
   curseforgeApiKey: '',
   aiBuilder: true,
   aiPackLimit: 0,

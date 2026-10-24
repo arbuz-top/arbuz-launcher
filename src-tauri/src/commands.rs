@@ -1124,6 +1124,18 @@ pub async fn scanner_quarantine_restore(id: String, name: String) -> Res<()> {
     crate::scanner::quarantine_restore(&id, &name).await
 }
 
+/// ИИ-заметка по одному подозрительному моду (через free-модели Zen).
+/// Только пояснение для пользователя: вердикт сканера не меняет.
+#[tauri::command]
+pub async fn ai_scan_note(
+    state: State<'_, AppState>,
+    id: String,
+    file: String,
+    lang: String,
+) -> Res<crate::scanner::ai_note::AiNote> {
+    crate::scanner::ai_note_for(&state, &id, &file, &lang).await
+}
+
 /// Окончательно удаляет файл из карантина.
 #[tauri::command]
 pub async fn scanner_quarantine_delete(id: String, name: String) -> Res<()> {

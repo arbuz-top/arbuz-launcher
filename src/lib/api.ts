@@ -135,6 +135,8 @@ export interface Config {
   scannerEnabled: boolean;
   /** Режим сканера: 'normal' | 'strict' | 'paranoid'. */
   scannerMode: string;
+  /** ИИ-этап сканера (заметки по подозрительным модам). */
+  aiScanner: boolean;
   curseforgeApiKey: string;
   /** Экспериментально: ИИ-ассистент сборок по промпту. */
   aiBuilder: boolean;
@@ -420,6 +422,15 @@ export interface NewsItem {
   imageUrl: string | null;
 }
 
+/** ИИ-заметка сканера по одному моду (пояснение, не приговор). */
+export interface AiNote {
+  model: string;
+  assessment: string;
+  confidence: number;
+  note: string;
+  elapsedMs: number;
+}
+
 /** Одна находка сканера модов. */
 export interface ScanFinding {
   rule: string;
@@ -621,4 +632,6 @@ export const api = {
     invoke<void>('scanner_quarantine_restore', { id, name }),
   scannerQuarantineDelete: (id: string, name: string) =>
     invoke<void>('scanner_quarantine_delete', { id, name }),
+  aiScanNote: (id: string, file: string, lang: string) =>
+    invoke<AiNote>('ai_scan_note', { id, file, lang }),
 };
