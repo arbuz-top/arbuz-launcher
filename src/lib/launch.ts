@@ -78,7 +78,7 @@ async function onLaunchError(id: string, world: string | null, msg: string): Pro
   const s2 = useStore.getState();
   s2.set({ running: { ...s2.running, [id]: 0 } });
   try {
-    await api.launchInstance(id, world, true);
+    await api.launchInstance(id, world, null, true);
   } catch (e) {
     const s3 = useStore.getState();
     const running = { ...s3.running };

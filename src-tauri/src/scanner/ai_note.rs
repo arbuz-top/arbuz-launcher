@@ -123,8 +123,8 @@ pub(crate) fn parse_answer(model: &str, text: &str, started: Instant) -> AiNote 
     }
 }
 
-/// Запрашивает ИИ-заметку по отчёту одного мода. Перебирает free-модели
-/// как `ai::diagnose`; ни одна не ответила — ошибка с пояснением.
+/// Запрашивает ИИ-заметку по отчёту одного мода. `ai::ask_text` сам
+/// перебирает free-модели; ошибка — если ни одна не ответила.
 pub(crate) async fn note(
     file: &str,
     sha256: &str,
@@ -136,29 +136,14 @@ pub(crate) async fn note(
 ) -> Res<AiNote> {
     let user = build_user(file, sha256, known_hash, score, level, findings);
     let system = format!(
-        "{SYSTEM}\n\nЯзык ответа: {}. Поле note пиши на этом языке.",
+        "{SYSTEM}
+
+Язык ответа: {}. Поле note пиши на этом языке.",
         lang_name(lang)
     );
-    let models = ai::models_ordered().await?;
-    let mut errors: Vec<String> = Vec::new();
-    for model in models.iter().take(3) {
-        let started = Instant::now();
-        match ai::chat(model, &system, &user, 900, 0.2).await {
-            Ok((text, _tokens)) => {
-                if text.trim().is_empty() {
-                    errors.push(format!("{model}: пустой ответ"));
-                    continue;
-                }
-                return Ok(parse_answer(model, &text, started));
-            }
-            Err((_retry, msg)) => {
-                errors.push(format!("{model}: {msg}"));
-            }
-        }
-    }
-    let tail: String = errors.iter().rev().take(2).cloned().collect::<Vec<_>>().join(" | ");
-    let tail: String = tail.chars().take(300).collect();
-    err(format!("Бесплатные модели не ответили. {tail}"))
+    let started = Instant::now();
+    let (model, text) = ai::ask_text(&system, &user, 900, 0.2, None).await?;
+    Ok(parse_answer(&model, &text, started))
 }
 
 /// Название языка для промпта (совпадает с ai.rs).

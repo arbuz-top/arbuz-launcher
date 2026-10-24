@@ -10,6 +10,18 @@ use crate::error::Res;
 use crate::{paths, store};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::path::Path;
+
+/// Атомарная запись байтов: временный файл + rename (как у JSON в store).
+pub(crate) async fn write_bytes_atomic(path: &Path, data: &[u8]) -> Res<()> {
+    if let Some(parent) = path.parent() {
+        tokio::fs::create_dir_all(parent).await?;
+    }
+    let tmp = path.with_extension("arbuz-tmp");
+    tokio::fs::write(&tmp, data).await?;
+    tokio::fs::rename(&tmp, path).await?;
+    Ok(())
+}
 
 /// Настройки синхронизации (в config.json).
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
@@ -106,7 +118,7 @@ pub async fn apply_before_launch(id: &str, st: &SyncSettings) -> Res<()> {
                 let applied = merge_options(&master, &mut target, &st.keys);
                 if !applied.is_empty() {
                     let data = render_options(&target);
-                    store::write_bytes_atomic(&path, data.as_bytes()).await?;
+                    write_bytes_atomic(&path, data.as_bytes()).await?;
                 }
             }
             // Нет options.txt у цели — игра ещё не запускалась: нечего
@@ -125,7 +137,7 @@ pub async fn apply_before_launch(id: &str, st: &SyncSettings) -> Res<()> {
                 let _ = tokio::fs::copy(&dst, &bak).await;
             }
             let bytes = tokio::fs::read(&src).await?;
-            store::write_bytes_atomic(&dst, &bytes).await?;
+            write_bytes_atomic(&dst, &bytes).await?;
         }
     }
     Ok(())
