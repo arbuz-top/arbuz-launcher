@@ -149,6 +149,7 @@ export interface Config {
   anim: AnimConfig;
   custom: CustomTheme;
   moves: Record<string, [number, number]>;
+  sync: SyncSettings | null;
 }
 
 export interface JavaInstall {
@@ -457,6 +458,16 @@ export interface ModReport {
   allowed: boolean;
 }
 
+/** Настройки синхронизации профилей (совпадает с sync::SyncSettings). */
+export interface SyncSettings {
+  /** id главного профиля. */
+  master: string;
+  /** Выбранные ключи options.txt. */
+  keys: string[];
+  /** Переносить servers.dat. */
+  serversDat: boolean;
+}
+
 /** Текстура скина аккаунта: data-URL и её размеры в пикселях. */
 export interface Skin {
   url: string;
@@ -634,4 +645,5 @@ export const api = {
     invoke<void>('scanner_quarantine_delete', { id, name }),
   aiScanNote: (id: string, file: string, lang: string) =>
     invoke<AiNote>('ai_scan_note', { id, file, lang }),
+  syncMasterOptions: () => invoke<Record<string, string>>('sync_master_options'),
 };

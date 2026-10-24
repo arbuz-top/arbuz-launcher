@@ -380,6 +380,9 @@ pub struct Config {
     /// Сдвиги кнопок в режиме расстановки: ключ → [dx, dy].
     #[serde(default)]
     pub moves: BTreeMap<String, [f32; 2]>,
+    /// Синхронизация настроек между профилями (главный профиль + ключи).
+    #[serde(default)]
+    pub sync: Option<crate::sync::SyncSettings>,
 }
 
 impl Default for Config {
@@ -412,6 +415,7 @@ impl Default for Config {
             anim: AnimConfig::default(),
             custom: CustomTheme::default(),
             moves: BTreeMap::new(),
+            sync: None,
         }
     }
 }
@@ -459,6 +463,19 @@ impl Config {
                 break;
             };
             self.moves.remove(&k);
+        }
+        if let Some(sync) = &mut self.sync {
+            if sync.master.len() != 32
+                || !sync.master.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+            {
+                sync.master = String::new();
+            }
+            sync.keys.retain(|k| !k.is_empty() && k.len() <= 100 && !k.contains(':'));
+            sync.keys.sort();
+            sync.keys.dedup();
+            sync.keys.truncate(500);
+        } else {
+            self.sync = None;
         }
     }
 }

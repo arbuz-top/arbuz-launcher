@@ -8,7 +8,7 @@ import { cachedAnim } from './lib/anim';
 
 export type View = 'home' | 'installs' | 'accounts' | 'p' | 'app' | 'browse' | 'coop';
 export type Tab = 'play' | 'mods' | 'worlds' | 'shots' | 'cfg';
-export type Sec = 'g' | 'j' | 'w' | 'c' | 'p' | 'm' | 's' | 'u' | 'v' | 'sc';
+export type Sec = 'g' | 'j' | 'w' | 'c' | 'p' | 'm' | 's' | 'u' | 'v' | 'sc' | 'sy';
 export type Modal = { p: 'ms' | 'ely' | 'off' | 'lsk' | 'pick' } | null;
 
 /** Внутрилаунчерный диалог подтверждения вместо системного window.confirm. */
@@ -41,6 +41,7 @@ export const DEFAULT_CONFIG: Config = {
   scannerEnabled: false,
   scannerMode: 'normal',
   aiScanner: false,
+  sync: null,
   curseforgeApiKey: '',
   aiBuilder: true,
   aiPackLimit: 0,

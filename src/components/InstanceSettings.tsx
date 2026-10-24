@@ -20,6 +20,7 @@ import { ConsoleTab } from './ConsoleTab';
 import { PackTab } from './PackTab';
 import { ScannerTab } from './ScannerTab';
 import { ScreenshotsTab } from './ScreenshotsTab';
+import { SyncTab } from './SyncTab';
 import { UpdatesTab } from './UpdatesTab';
 import { WorldsTab } from './WorldsTab';
 
@@ -34,6 +35,7 @@ const SECS: [Sec, string][] = [
   ['v', 'Консоль'],
   ['s', 'Скриншоты'],
   ['sc', 'Безопасность'],
+  ['sy', 'Синхронизация'],
 ];
 
 export function InstanceSettings({ inst }: { inst: Instance }) {
@@ -436,6 +438,8 @@ export function InstanceSettings({ inst }: { inst: Instance }) {
   } else if (s.sec === 'sc') {
     body = <ScannerTab inst={inst} />;
 
+  } else if (s.sec === 'sy') {
+    body = <SyncTab inst={inst} />;
   } else {
     body = <ScreenshotsTab inst={inst} />;
   }
@@ -457,7 +461,7 @@ export function InstanceSettings({ inst }: { inst: Instance }) {
           </div>
         ))}
       </div>
-      <div style={{ flex: 1, minWidth: 0, maxWidth: ['c', 'p', 'm', 's', 'v', 'sc'].includes(s.sec) ? 'none' : 640 }}>{body}</div>
+      <div style={{ flex: 1, minWidth: 0, maxWidth: ['c', 'p', 'm', 's', 'v', 'sc', 'sy'].includes(s.sec) ? 'none' : 640 }}>{body}</div>
     </div>
   );
 }

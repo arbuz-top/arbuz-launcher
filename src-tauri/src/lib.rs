@@ -20,6 +20,7 @@ mod paths;
 mod prism;
 mod sandbox;
 mod scanner;
+mod sync;
 mod skins;
 mod state;
 mod store;
@@ -222,6 +223,7 @@ pub fn run() {
             commands::scanner_quarantine_restore,
             commands::scanner_quarantine_delete,
             commands::ai_scan_note,
+            commands::sync_master_options,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

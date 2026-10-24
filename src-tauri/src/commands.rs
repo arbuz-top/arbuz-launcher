@@ -1136,6 +1136,28 @@ pub async fn ai_scan_note(
     crate::scanner::ai_note_for(&state, &id, &file, &lang).await
 }
 
+// ---------------------------------------------------------------------------
+// Синхронизация настроек между профилями (Б1)
+// ---------------------------------------------------------------------------
+
+/// Ключи и значения options.txt главного профиля (для списка в UI).
+/// Настройки синхронизации кладутся в config.json через set_config.
+#[tauri::command]
+pub async fn sync_master_options(state: State<'_, AppState>) -> Res<std::collections::BTreeMap<String, String>> {
+    let master = state
+        .config
+        .lock()
+        .await
+        .sync
+        .clone()
+        .map(|s| s.master)
+        .unwrap_or_default();
+    if master.is_empty() {
+        return Ok(std::collections::BTreeMap::new());
+    }
+    crate::sync::master_keys(&master).await
+}
+
 /// Окончательно удаляет файл из карантина.
 #[tauri::command]
 pub async fn scanner_quarantine_delete(id: String, name: String) -> Res<()> {

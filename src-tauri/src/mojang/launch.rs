@@ -221,6 +221,12 @@ async fn run(
         crate::scanner::launch_gate(state, id).await?;
     }
 
+    // D2. Синхронизация настроек: подмешать выбранные ключи options.txt
+    // и servers.dat из главного профиля до старта игры.
+    if let Some(sync) = state.config.lock().await.sync.clone() {
+        crate::sync::apply_before_launch(id, &sync).await?;
+    }
+
     // F. (0 → 30) version.json и client jar.
     // Для модового загрузчика сначала ставим его профиль и сливаем с vanilla.
     let vanilla = matches!(inst.loader, Loader::Vanilla);
