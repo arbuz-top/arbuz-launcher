@@ -1,5 +1,6 @@
 mod accounts;
 mod ai;
+mod benchmark;
 mod builder;
 mod catalog;
 mod commands;
@@ -232,6 +233,9 @@ pub fn run() {
             commands::pinned_servers,
             commands::pin_server,
             commands::game_monitor,
+            commands::benchmark_start,
+            commands::benchmark_cancel,
+            commands::benchmark_list,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

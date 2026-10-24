@@ -8,7 +8,7 @@ import { cachedAnim } from './lib/anim';
 
 export type View = 'home' | 'installs' | 'accounts' | 'p' | 'app' | 'browse' | 'coop' | 'servers';
 export type Tab = 'play' | 'mods' | 'worlds' | 'shots' | 'cfg';
-export type Sec = 'g' | 'j' | 'w' | 'c' | 'p' | 'm' | 's' | 'u' | 'v' | 'sc' | 'sy';
+export type Sec = 'g' | 'j' | 'w' | 'c' | 'p' | 'm' | 's' | 'u' | 'v' | 'sc' | 'sy' | 'bm';
 export type Modal = { p: 'ms' | 'ely' | 'off' | 'lsk' | 'pick' } | null;
 
 /** Внутрилаунчерный диалог подтверждения вместо системного window.confirm. */

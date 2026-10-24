@@ -454,6 +454,22 @@ export interface PingInfo {
   motd: string;
 }
 
+/** Прогон бенчмарка сборки. */
+export interface BenchRun {
+  date: number;
+  mcVersion: string;
+  loader: string;
+  mods: number;
+  world: string | null;
+  /** мс до готовности игры (меню/атласы); 0 — маркер не увидели. */
+  loadMs: number;
+  ramAvgMb: number;
+  ramPeakMb: number;
+  cpuAvg: number;
+  cpuPeak: number;
+  samples: number;
+}
+
 /** Снимок ресурсов процесса игры для монитора. */
 export interface MonitorSample {
   pid: number;
@@ -699,4 +715,9 @@ export const api = {
   pinServer: (id: string, name: string, ip: string, pin: boolean) =>
     invoke<void>('pin_server', { id, name, ip, pin }),
   gameMonitor: (id: string) => invoke<MonitorSample>('game_monitor', { id }),
+
+  benchmarkStart: (id: string, world: string | null) =>
+    invoke<void>('benchmark_start', { id, world }),
+  benchmarkCancel: () => invoke<void>('benchmark_cancel'),
+  benchmarkList: (id: string) => invoke<BenchRun[]>('benchmark_list', { id }),
 };

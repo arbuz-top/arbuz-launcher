@@ -1222,6 +1222,41 @@ pub struct MonitorSample {
     pub cpu_pct: f32,
 }
 
+// ---------------------------------------------------------------------------
+// Бенчмарк сборки (Б5)
+// ---------------------------------------------------------------------------
+
+/// Начинает прогон бенчмарка (до запуска игры) и сэмплер ресурсов.
+#[tauri::command]
+pub async fn benchmark_start(id: String, world: Option<String>) -> Res<()> {
+    paths::validate_instance_id(&id)?;
+    crate::benchmark::start(&id, world.as_deref())?;
+    tokio::spawn(async move {
+        // Тик раз в 2 секунды, пока прогон жив.
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            if !crate::benchmark::active() {
+                return;
+            }
+            crate::benchmark::tick();
+        }
+    });
+    Ok(())
+}
+
+/// Отменяет прогон (запуск игры не удался).
+#[tauri::command]
+pub fn benchmark_cancel() {
+    crate::benchmark::cancel();
+}
+
+/// Прошлые прогоны профиля, свежие сверху.
+#[tauri::command]
+pub fn benchmark_list(id: String) -> Res<Vec<crate::benchmark::BenchRun>> {
+    paths::validate_instance_id(&id)?;
+    crate::benchmark::list(&id)
+}
+
 #[tauri::command]
 pub fn game_monitor(state: State<'_, AppState>, id: String) -> MonitorSample {
     let Some(pid) = state.game_pids.blocking_lock().get(&id).copied() else {

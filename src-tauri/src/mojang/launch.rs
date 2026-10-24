@@ -176,6 +176,16 @@ pub async fn launch(
     state.running.lock().await.remove(&id);
     state.game_pids.lock().await.remove(&id);
 
+    // Бенчмарк (если идёт): считаем итоги до очистки PID.
+    if crate::benchmark::is_running(id.as_str()) {
+        let mods = std::fs::read_dir(paths::instance_minecraft_dir(id.as_str()).join("mods"))
+            .map(|rd| rd.flatten().filter(|e| e.path().is_file()).count() as u32)
+            .unwrap_or(0);
+        if let Some(run) = crate::benchmark::finish(id.as_str(), &inst.mc_version, inst.loader.label(), mods) {
+            let _ = app.emit("bench-done", run);
+        }
+    }
+
     match result {
         Ok(Outcome::Done(code)) => {
             let _ = app.emit(
@@ -659,6 +669,7 @@ async fn run(
         }
     }
     state.game_pids.lock().await.insert(id.to_string(), child.id().unwrap_or(0));
+    crate::benchmark::on_pid(id, child.id().unwrap_or(0));
     let _ = app.emit(
         "game-start",
         GameStart {
@@ -685,6 +696,7 @@ async fn run(
             loop {
                 match lines.next_line().await {
                     Ok(Some(line)) => {
+                        crate::benchmark::on_log(&id2, &line);
                         let line = if m.is_empty() {
                             line
                         } else {
@@ -715,6 +727,7 @@ async fn run(
             loop {
                 match lines.next_line().await {
                     Ok(Some(line)) => {
+                        crate::benchmark::on_log(&id2, &line);
                         let line = if m.is_empty() {
                             line
                         } else {
